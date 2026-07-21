@@ -48,16 +48,28 @@ Chosen to match tooling you already run (Farpost, Sreditor) so there's no new pl
 
 ```
 users
-  id (pk), email, created_at, entitlement_status (free | paid), stripe_customer_id,
-  target_role, target_industry            # nullable, optional, editable anytime — added 2026-07-21
-  # Private practice preference used to steer M2's system prompt and M4's mining.
-  # NOT the same thing as M8's Tier 2a self-tagged stack/role -- that is a separate,
-  # explicitly consent-gated ask for the sellable data layer. This field is never
-  # sold or aggregated; it exists purely to make the user's own practice sessions
-  # more relevant to the audience they're actually preparing for.
+  id (pk), email, created_at, entitlement_status (free | paid), stripe_customer_id
+
+anchors                    # revised 2026-07-21 -- replaces the flat users.target_role/target_industry
+  id (pk), user_id (fk -> users.id), label, target_role, target_industry,
+    job_description_text (nullable), company (nullable), created_at, archived_at (nullable)
+  # A user can hold multiple anchors at once (practicing for more than one role/company in parallel).
+  # target_role/target_industry are light-touch and read live by M2 (steers tone/follow-up emphasis).
+  # job_description_text/company are richer and deliberately NOT read by M2 at all -- anchor-only,
+  # compared against mining results after the fact in M4/M5/M6. See M2's note on why that split exists.
+  # Private in all cases -- never sold or aggregated, never conflated with M8's Tier 2a self-tagging.
+
+anchor_revisions           # dated revision log, same shape as Sreditor's anchor.md + `reflect` pattern
+  id (pk), anchor_id (fk -> anchors.id), revision_text, created_at
+  # Lets a user's understanding of their own goal evolve visibly over time rather than being
+  # silently overwritten -- e.g. "narrowed from 'any backend role' to 'backend infra, fintech'
+  # after session 4." The evolution itself is a coaching artifact, not just bookkeeping.
 
 sessions
-  id (pk), user_id (fk -> users.id), started_at, ended_at, mode (voice|text), status (in_progress|complete)
+  id (pk), user_id (fk -> users.id), anchor_id (fk -> anchors.id, nullable), started_at, ended_at,
+    mode (voice|text), status (in_progress|complete)
+  # anchor_id added 2026-07-21 -- which goal (if any) this session was practiced against,
+  # enabling M6's per-anchor progress slicing
 
 transcript_turns
   id (pk), session_id (fk -> sessions.id), speaker (user|assistant), content, ts
@@ -72,7 +84,7 @@ session_mining_results
   # (a session far outside normal career/work topics flags for throttling review),
   # not just user-facing coaching signal
   # audience_keyword_matches[] added 2026-07-21 -- { term, quoted_phrase } pairs,
-  # only populated when users.target_role is set; see M4
+  # only populated when the session's anchor has a target_role/job_description_text set; see M4
 
 feedback_reports
   id (pk), session_id (fk -> sessions.id), coaching_notes[], generated_at
@@ -120,11 +132,12 @@ Each module below becomes one OpenSpec change via the AI slash-command workflow 
 - Free-tier gate: N free sessions before paywall (decide N — recommend 3)
 - **Android note carried from Section 2:** the mobile app never initiates a purchase — it only checks `entitlement_status` server-side. Purchase happens on the website. This keeps the app "consumption-only" under Google Play policy and avoids Play Billing entirely.
 - **Gap found in an earlier drift audit — Section 13's account-deletion finding was never actually built anywhere.** It lived as a data-model prose note (Section 3) but no module had an actual task for it. Adding here: implement account deletion as a real cascade-delete across `users`, `sessions`, `transcript_turns`, `session_mining_results`, `feedback_reports`, `tier1_profiles` — and per Section 3's own note, decide the Tier 2b recomputation-vs-disclosure approach as part of this task, not separately.
+- **Gap found 2026-07-21 — no profile/account screen was ever specified.** The data (`entitlement_status`, email, and now `anchors`) exists across several modules, but nothing names a single place a user actually sees it. Adding here as a minimal, not-fancy screen: account email, entitlement status ("2 free sessions left" / "unlocked $10 [date]"), and the account-deletion trigger from the gap above. Anchor creation/editing itself is specified under M6, not here — see that module's note on why it lives there instead.
 - **Deliverable:** a user can sign up, get 3 free sessions, pay $10 on the website, unlock unlimited, and delete their account with a real cascade-delete across every collection that holds their data — the entitlement is checked identically (and identically un-spoofable) whether they're on web or the Android app
 
 ### M2 — Conversation Engine (core)
 - System prompt design: open-ended, non-technical, past/present/future question arc
-- **Added 2026-07-21 — optional target-role/industry input**, captured once at onboarding or edited anytime (`users.target_role`/`target_industry`, see Section 3), fed into the system prompt so follow-up questions land closer to what actually matters for that audience (a backend-infra candidate gets asked about distributed-systems tradeoffs; an EM candidate gets asked about stakeholder alignment). Entirely optional — the generic past/present/future arc above is the fallback when it's unset. **Explicitly not the same flow as M8's Tier 2a self-tagging** — this is a private practice preference, never sold or aggregated; don't let the two asks get conflated into one consent flow later.
+- **Added 2026-07-21, revised 2026-07-21 — optional anchor input, split by how "live" it's allowed to be.** A session can be linked to an `anchor` (see Section 3). Only the anchor's light `target_role`/`target_industry` fields are read live, here, to steer tone/emphasis (a backend-infra candidate gets asked about distributed-systems tradeoffs; an EM candidate gets asked about stakeholder alignment). **The richer `job_description_text`/`company` fields are deliberately never read by M2 at all** — feeding a pasted JD into live follow-up logic risks recreating exactly the scripted-checklist dynamic Vocare exists to reject (see the anchor-vs-nudge discussion this was decided from). That richer content is anchor-only: compared against mining results after the session ends, in M4/M5/M6, never during. Entirely optional either way — the generic past/present/future arc above is the fallback when no anchor is linked. **Explicitly not the same flow as M8's Tier 2a self-tagging** — anchors are a private practice preference, never sold or aggregated.
 - Adaptive follow-up logic (detect vague answers, prompt for specifics — *without* turning into a technical quiz)
 - Session state machine (start → in-progress → complete)
 - Text-only mode first (voice comes in M3) to de-risk the hardest part (prompt design) before adding capture complexity
@@ -143,7 +156,7 @@ Each module below becomes one OpenSpec change via the AI slash-command workflow 
 - Extract: ownership language, tradeoff reasoning presence, tech/domain mentions, clarity, sentiment, notable growth signals
 - **Also extract a topic-relevance score** — per Section 17's proposed reuse, a session far outside normal career/work topics is a natural signal for free-tier abuse throttling (jailbreak attempts to use the free sessions as a general-purpose chatbot), not just coaching feedback; this was proposed in the security pass but needs to actually be built here, not left as prose elsewhere
 - Store in `session_mining_results`, explicitly **not** written back into any user-facing "score"
-- **Added 2026-07-21 — audience-aware keyword/phrase matching.** When `users.target_role` is set, the mining pass checks the transcript against a curated role-language reference set (a small library of relevant terms/phrases per role-category — e.g. "SLA," "on-call," "stakeholder alignment" — this reference set itself is new build work, not something that exists yet) and stores actual matched quotes in `audience_keyword_matches[]`, not just a count. Grounded in the user's real words, not a fuzzy "sounds right" judgment — keeps this evidence-based rather than an opaque score dressed up as audience fit.
+- **Added 2026-07-21, revised 2026-07-21 — audience-aware keyword/phrase matching against the session's anchor.** When a session is linked to an anchor with `target_role` and/or `job_description_text` set, the mining pass (this is the *only* place `job_description_text` is ever read — never M2, see that module's note) checks the transcript against a curated role-language reference set (a small library of relevant terms/phrases per role-category — e.g. "SLA," "on-call," "stakeholder alignment" — this reference set itself is new build work, not something that exists yet) and stores actual matched quotes in `audience_keyword_matches[]`, not just a count. Grounded in the user's real words, not a fuzzy "sounds right" judgment — keeps this evidence-based rather than an opaque score dressed up as audience fit.
 - **Deliverable:** every completed session produces a structured mining record, serving the coaching pipeline (M5), the progress trend (M6), and the abuse-detection need (Section 17)
 
 ### M5 — Coaching Feedback (user-facing)
@@ -154,11 +167,12 @@ Each module below becomes one OpenSpec change via the AI slash-command workflow 
 - **Deliverable:** user sees a feedback report after each session, accessible via screen reader
 
 ### M6 — Progress Over Time
-- Session history view
+- **Session history view — clarified 2026-07-21, this was underspecified.** Not just an aggregate trend line: a list of past sessions a user can open individually, each showing its full `transcript_turns` and its own `feedback_reports` entry, not only where it sits in a trend. The data already exists per-session (Section 3); this module is what actually surfaces it.
 - Simple trend indicators (e.g. "more specific about tradeoffs than 3 sessions ago") derived from comparing mining results over time
-- **Added 2026-07-21 — audience-alignment trend, when a target role is set.** A plain-language sentence built from `audience_keyword_matches[]` trending over time (e.g. "you're using more of the language a [target role] conversation would expect than 3 sessions ago") — same qualitative, no-score framing as the trend indicator above, not a hidden numeric match percentage. Naturally absent when no target role is declared; nothing forces the input.
+- **Added 2026-07-21, revised 2026-07-21 — audience-alignment trend, per anchor.** A plain-language sentence built from `audience_keyword_matches[]` trending over time (e.g. "you're using more of the language this role would expect than 3 sessions ago") — same qualitative, no-score framing as the trend indicator above, not a hidden numeric match percentage. Sliced per-anchor via `sessions.anchor_id` when a user holds more than one anchor at once. Naturally absent when no anchor is linked; nothing forces the input.
+- **Added 2026-07-21 — anchor management lives here, not in M1's profile.** Create, edit, and archive anchors; append dated revisions via `anchor_revisions` rather than silently overwriting (mirrors Sreditor's `anchor.md` + `reflect` pattern) so a user can see how their own understanding of the goal shifted — e.g. "narrowed from 'any backend role' to 'backend infra, fintech' after session 4." That revision history is itself a coaching artifact, which is why it belongs next to progress rather than tucked into account settings.
 - **Same accessibility requirement as M5** — trend/chart displays need a non-visual equivalent (e.g. text-described trend summary), not just a graphical view
-- **Deliverable:** returning users can see growth across sessions, not just a single result
+- **Deliverable:** returning users can see growth across sessions, reread any past session in full, and manage the goals (anchors) their practice is being measured against
 
 ### M7 — Anonymization & Tier 2b Pipeline (mined aggregate)
 - Build the aggregation job: strip all identifying content, roll mining results into population-level stats only (e.g. "% of sessions mentioning TypeScript show high ownership language")
@@ -477,6 +491,16 @@ Scoped to something cheap, concrete, and never checked: whether basic liability 
 **Recommended action:** get a quote alongside the entity-structure decision from Section 22 — these are complementary layers (legal separation limits what a claim can reach; insurance covers the cost of the claim itself), not alternatives to each other.
 
 **What this pass did not find:** no reason this needs to block M0 — it's a parallel-track item to arrange before public launch, not a build dependency.
+
+---
+
+## 24. Parking Lot — Later-Stage Ideas, Not Current Scope
+
+Ideas surfaced during brainstorming (2026-07-21) that are worth keeping, deliberately not folded into any module yet — positioning/marketing bets or speculative additions that would be premature to decide with zero usage data. Revisit once the alpha (M0-M2) is real and in use.
+
+- **"Career conversations," not "mock interviews," as the category.** Every named competitor (Section 8's scan — SmallTalk2Me, Bossed, Huru, Himalayas, LockedIn AI, My Interview Practice, Applicado) brands itself as interview-prep. Vocare's own thesis (Section 1: "what they've built, what they're doing, what they want next") is already broader than that — it just isn't being said out loud. Practicing a raise conversation, a return-to-work narrative, or a career-pivot story is structurally identical to build (same engine, same anchor concept, different context) — this is a positioning decision to make later, not a build task now.
+- **Cross-session narrative callback in M2.** Since transcripts and mining results are already stored longitudinally (M6), the conversation could organically reference an earlier session ("last time you mentioned a tricky call on the billing migration — does that change how you'd tell this story?"). Nearly free to build once M6's data exists, but deliberately not in M2's initial scope — worth trying once there's a real returning user to try it on.
+- **Underserved-niche positioning** (career changers, immigrants adapting to unfamiliar interview norms, return-to-work parents facing narrative gaps) — plausible beachhead markets less saturated than generic new-grad interview prep, but a marketing bet to test with real usage data, not a launch decision.
 
 ---
 

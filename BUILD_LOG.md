@@ -62,6 +62,17 @@ Folded into M2/M4/M5/M6 and the `users` table (Section 3) directly, since none o
 
 ---
 
+## Entry 1.7 — Anchors: from a flat field to a living, revisable goal
+
+Follow-on brainstorm the same day pushed Entry 1.6's flat `target_role`/`target_industry` fields into a proper `anchors` table (Section 3) — a user can hold multiple anchors at once, and each one gets a dated revision log (`anchor_revisions`) instead of being silently overwritten, directly borrowing the shape of Sreditor's own `anchor.md` + `reflect` pattern. Two real decisions came out of this:
+
+- **Richer anchor content (a pasted job description, a company name) is anchor-only — never read live by M2.** Only the light `target_role`/`target_industry` fields steer the live conversation's tone. Feeding a full JD into live follow-up logic risked recreating the scripted-checklist dynamic Vocare exists to reject; keeping it strictly post-session (M4/M5/M6 only) preserves the same real-time/reflective split the spec already enforces for safety and scoring.
+- **Two real gaps got caught and assigned a home:** M6's "session history view" was underspecified (didn't say a user could actually reread a past transcript + feedback report, not just see a trend line) — clarified. And no module had ever specified where a profile/account screen lives at all — added a minimal one to M1 (email, entitlement, deletion trigger), with anchor management deliberately living in M6 instead, since editing a goal is a progress/coaching action, not an account-settings one.
+
+Also parked two ideas deliberately, not built: reframing the category as "career conversations" rather than "mock interviews," and cross-session narrative callback in M2 — both written into a new Section 24 ("Parking Lot") in the spec rather than silently dropped.
+
+---
+
 ## Entry 2 — Tooling Installed
 
 _Fill in: OpenSpec, scc, and anything else installed; versions; any install issues hit._
