@@ -90,6 +90,50 @@
     <div class="note">Updated per feedback: mark now baseline-aligned (its bottom edge sits on the wordmark's actual text baseline via <code>align-items: baseline</code>, not box-center) rather than optically floated, and stroke weight eased back down (4&nbsp;→&nbsp;3.2 outer, 3.5&nbsp;→&nbsp;2.8 inner). Also resized slightly since anchoring to the baseline means it no longer has symmetric space to grow into above and below.</div>
   </div>
 
+  <div class="concept" style="text-align:left;">
+    <div class="label" style="margin-bottom:6px;">Concept F vs. G — at actual header scale, side by side</div>
+    <p class="note" style="margin-top:0; border-top:none; padding-top:0;">The current header mark reads too strong at its real ~20px size. Two fixes to compare, both shown at true size first, then zoomed 4× underneath for detail — judge by the top row, the zoom is just to see the shape clearly.</p>
+
+    <div style="display:flex; gap:60px; margin-top:24px; flex-wrap:wrap;">
+      <div style="text-align:center;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:14px;">F — dialed back, still two arcs</div>
+        <div style="display:flex; align-items:baseline; gap:4px; justify-content:center;">
+          <svg width="19" height="13" viewBox="0 0 46 31" fill="none" style="position:relative; top:-2px;">
+            <path d="M6 30C6 30 14 8 23 8C32 8 40 30 40 30" stroke="#3f5d54" stroke-width="4" stroke-linecap="round"/>
+            <path d="M13 24C13 24 18 13 23 13C28 13 33 24 33 24" stroke="#3f5d54" stroke-width="3.4" stroke-linecap="round" opacity="0.6"/>
+          </svg>
+          <span style="font-family:'Fraunces',serif; font-style:italic; font-weight:500; font-size:19px; color:#3f5d54; letter-spacing:-0.01em;">vocare</span>
+        </div>
+        <div style="margin-top:22px;">
+          <svg width="76" height="52" viewBox="0 0 46 31" fill="none">
+            <path d="M6 30C6 30 14 8 23 8C32 8 40 30 40 30" stroke="#3f5d54" stroke-width="4" stroke-linecap="round"/>
+            <path d="M13 24C13 24 18 13 23 13C28 13 33 24 33 24" stroke="#3f5d54" stroke-width="3.4" stroke-linecap="round" opacity="0.6"/>
+          </svg>
+        </div>
+      </div>
+
+      <div style="text-align:center;">
+        <div style="font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:14px;">G — three-arc echo, subtle outer ring</div>
+        <div style="display:flex; align-items:baseline; gap:4px; justify-content:center;">
+          <svg width="21" height="14" viewBox="0 0 50 34" fill="none" style="position:relative; top:-2px;">
+            <path d="M2 32C2 32 12 3 25 3C38 3 48 32 48 32" stroke="#3f5d54" stroke-width="2.2" stroke-linecap="round" opacity="0.35"/>
+            <path d="M8 30C8 30 15 8 25 8C35 8 42 30 42 30" stroke="#3f5d54" stroke-width="4" stroke-linecap="round"/>
+            <path d="M15 24C15 24 19 13 25 13C31 13 35 24 35 24" stroke="#3f5d54" stroke-width="3.4" stroke-linecap="round" opacity="0.6"/>
+          </svg>
+          <span style="font-family:'Fraunces',serif; font-style:italic; font-weight:500; font-size:19px; color:#3f5d54; letter-spacing:-0.01em;">vocare</span>
+        </div>
+        <div style="margin-top:22px;">
+          <svg width="76" height="52" viewBox="0 0 50 34" fill="none">
+            <path d="M2 32C2 32 12 3 25 3C38 3 48 32 48 32" stroke="#3f5d54" stroke-width="2.2" stroke-linecap="round" opacity="0.35"/>
+            <path d="M8 30C8 30 15 8 25 8C35 8 42 30 42 30" stroke="#3f5d54" stroke-width="4" stroke-linecap="round"/>
+            <path d="M15 24C15 24 19 13 25 13C31 13 35 24 35 24" stroke="#3f5d54" stroke-width="3.4" stroke-linecap="round" opacity="0.6"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+    <div class="note">My read once both are actually rendered: F stays crisp at true size and still reads as two distinct arcs. G's outer ring is close to invisible at true size (confirms the earlier lesson — thin/light strokes vanish at ~20px) and only becomes legible in the 4× zoom, which means in real use it'd mostly just look like a slightly bigger, slightly softer version of F rather than a genuine third ring. Leaning F.</div>
+  </div>
+
   <div class="concept">
     <div class="label">Concept B — Cormorant Garamond, editorial caps</div>
     <div class="wordmark-b">VOCARE</div>
