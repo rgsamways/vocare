@@ -19,7 +19,7 @@ This file is read by Claude at the start of every session working on this repo. 
 2. **MUST keep every change small and scoped to what was asked.** No unprompted rewrites, refactors, or "while I'm in here" improvements. If something else looks wrong, say so and ask — don't fix it silently.
 3. **MUST verify, never just assert.** Run the code. Read the diff. A change is not "done" because it looks plausible — it's done because it was actually executed and the output checked.
 4. **MUST state the exact tech stack and commands, never guess them.** Package manager, versions, build/lint/test/run/deploy commands live in this file or a linked reference doc — not re-derived from memory each session.
-5. **MUST treat sensitive areas with extra caution:** auth, payments/billing, database migrations, deployment config. Changes here get flagged explicitly and confirmed before proceeding, even if the broader task was already approved.
+5. **MUST treat sensitive areas with extra caution:** auth, payments/billing, database migrations, deployment config, crisis-safety detection logic, and data anonymization/de-identification work. Changes here get flagged explicitly and confirmed before proceeding, even if the broader task was already approved. **Updated 2026-07-21** to explicitly name crisis-safety and anonymization alongside the original four — both carry real-harm stakes established elsewhere in this project (Vocare's spec, Sections 14 and 22) that put them on the same footing as auth/payments, even though they weren't originally named here.
 6. **MUST give a final report after every task** — files changed, commands run, what to check. No silent modifications without a paper trail.
 7. **MUST NOT run broad, unscoped "go investigate" tasks.** Any exploration is scoped narrowly (a specific folder, a specific question) — not "look through the whole repo and see what you find."
 8. **MUST start a fresh session for unrelated or complex new work**, rather than continuing an old thread that's accumulated unrelated context.
@@ -33,6 +33,7 @@ This file is read by Claude at the start of every session working on this repo. 
 - **Package manager:** npm (workspaces) — matches every other active project (Sreditor, Farpost web, Monkeyback frontend, Taplog web all use `package-lock.json`)
 - **Local Postgres (dev):** Docker, `postgres:16-alpine`, mapped to host port `5433` (avoids collision with the native Postgres 18 service and Monkeyback's container, both on 5432)
 - **Web/mobile architecture:** separate Vite web app + Expo mobile app, sharing a `/shared` logic package (not unified React Native Web) — decided 2026-07-21
+- **Development process — decided 2026-07-21:** two-instance model is mandatory for sensitive modules (M1 auth/payments, M2 crisis-safety, M7 anonymization) — one Claude instance proposes/applies via OpenSpec, a second independent instance grades the work by reading the persisted proposal/tasks/design files, not shared conversation context. Single-instance is acceptable for lower-stakes modules (M0 scaffolding, M8/M9 straightforward UI). Same sensitivity flags rule 5 already uses, not a new categorization.
 - **Build/test/lint commands:** _TBD once M0 scaffolding exists_
 
 ## Reference
