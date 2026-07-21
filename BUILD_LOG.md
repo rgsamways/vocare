@@ -38,7 +38,19 @@ Renamed to **Vocare** after a short brainstorm considering both Latin-rooted and
 
 ## Entry 1 — Repo Created
 
-_Fill in: date, GitHub repo URL, initial clone confirmed._
+Repo created at `github.com/rgsamways/vocare`, cloned to `c:\dev\vocare`. Planning docs (`CLAUDE.md`, `BUILD_LOG.md`, `HANDOFF.md`, `vocare-project-specification.md`) committed and pushed 2026-07-21 — no code yet, documents only.
+
+---
+
+## Entry 1.5 — Pre-M0 Decisions Locked
+
+Before any scaffolding, three open questions from the spec's Section 7 got resolved in conversation with Claude:
+
+- **Package manager: npm (workspaces).** Checked every other active project (Sreditor, Farpost web, Monkeyback frontend, Taplog web) — all use `package-lock.json`, none use pnpm. Matching that beats an abstract "which is better" argument.
+- **Local Postgres: Docker (`postgres:16-alpine`), host port 5433.** Matches the existing pattern in Farpost API and Monkeyback (both already run Postgres via `docker-compose.yml`). Port 5433 chosen specifically to avoid colliding with the native Postgres 18 Windows service and Monkeyback's own container, both of which sit on 5432.
+- **Web/mobile architecture: separate Vite web app + Expo mobile app, sharing a `/shared` logic package** (not unified React Native Web). This was the one genuinely new decision with no existing project to match against. Chosen because it's the standard, well-documented pattern, and because being able to explain *why* — React and React Native share logic but not UI markup, `<div>` vs `<View>` are different primitives — is itself a better answer to "why A over B" than the trivia-style AI screen that started this whole project.
+
+Also settled: the install list for M0 (OpenSpec CLI, `scc`, `sreditor`, `jscpd`, `sem`, Expo/EAS CLI, Stripe CLI, plus Railway/Vercel CLIs once deployment is actually being built).
 
 ---
 

@@ -30,7 +30,9 @@ This file is read by Claude at the start of every session working on this repo. 
 
 - **Stack:** Node.js + TypeScript, Fastify (backend), React + Vite (web), Expo/React Native (mobile), PostgreSQL, Anthropic API (Claude Haiku 4.5)
 - **Spec methodology:** OpenSpec — one change per module (M0–M11, see `vocare-project-specification.md`)
-- **Package manager:** _TBD when repo is created_
+- **Package manager:** npm (workspaces) — matches every other active project (Sreditor, Farpost web, Monkeyback frontend, Taplog web all use `package-lock.json`)
+- **Local Postgres (dev):** Docker, `postgres:16-alpine`, mapped to host port `5433` (avoids collision with the native Postgres 18 service and Monkeyback's container, both on 5432)
+- **Web/mobile architecture:** separate Vite web app + Expo mobile app, sharing a `/shared` logic package (not unified React Native Web) — decided 2026-07-21
 - **Build/test/lint commands:** _TBD once M0 scaffolding exists_
 
 ## Reference
