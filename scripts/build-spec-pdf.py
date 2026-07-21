@@ -15,7 +15,10 @@ body_html = markdown.markdown(
     extension_configs={"toc": {"toc_depth": "2-3"}},
 )
 
-MARK_SVG = '''<svg width="30" height="20" viewBox="0 0 46 33" fill="none" xmlns="http://www.w3.org/2000/svg">
+# Exact mark/wordmark from mockups/interface-v1.html's approved header, scaled 2x uniformly
+# (svg 19x14 -> 38x28, gap 4px -> 8px, top -2px -> -4px, font-size 19px -> 38px) so every
+# dimension scales in lockstep from the tuned values rather than being re-approximated.
+MARK_SVG = '''<svg width="38" height="28" viewBox="0 0 46 33" fill="none" xmlns="http://www.w3.org/2000/svg">
 <path d="M6 30C6 30 14 8 23 8C32 8 40 30 40 30" stroke="#3f5d54" stroke-width="4" stroke-linecap="round"/>
 <circle cx="6" cy="30" r="2" fill="#3f5d54"/><circle cx="40" cy="30" r="2" fill="#3f5d54"/>
 <path d="M13 24C13 24 18 13 23 13C28 13 33 24 33 24" stroke="#3f5d54" stroke-width="3.4" stroke-linecap="round" opacity="0.6"/>
@@ -44,9 +47,10 @@ template = f"""<!DOCTYPE html>
     height: 235mm; display: flex; flex-direction: column; justify-content: center;
     align-items: flex-start; page-break-after: always;
   }}
-  .cover .brandrow {{ display: flex; align-items: baseline; gap: 10px; margin-bottom: 46px; }}
+  .cover .brandrow {{ display: flex; align-items: baseline; gap: 8px; margin-bottom: 46px; }}
+  .cover .brandrow svg {{ position: relative; top: -4px; }}
   .cover .brandrow span {{
-    font-family: 'Fraunces', serif; font-style: italic; font-weight: 500; font-size: 30pt;
+    font-family: 'Fraunces', serif; font-style: italic; font-weight: 500; font-size: 38px;
     color: var(--accent); letter-spacing: -0.01em;
   }}
   .cover h1 {{
@@ -99,7 +103,7 @@ template = f"""<!DOCTYPE html>
   <div class="meta">
     <b>Owner:</b> Robin Samways<br>
     <b>Status:</b> Pre-build planning document, verified pass<br>
-    <b>Development process:</b> two-instance Claude model for sensitive modules (M1 auth/payments, M2 crisis-safety, M7 anonymization) — one instance proposes/applies via OpenSpec, an independent second instance grades the work from the persisted proposal/tasks/design files; single-instance acceptable for lower-stakes modules<br>
+    <b>Development process:</b> two-instance Claude model for sensitive modules (M1 auth/payments, M2 crisis-safety, M7 anonymization) — one instance proposes/applies via OpenSpec, an independent second instance grades the work from the persisted proposal/tasks/design files; single-instance acceptable for lower-stakes modules. Instances are named <b>chat</b> (proposes/grades) and <b>cli</b> (applies) for handoff messages between them.<br>
     <b>Generated:</b> 2026-07-21
   </div>
 </div>
