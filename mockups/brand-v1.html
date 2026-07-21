@@ -52,7 +52,7 @@
   .tagline-b { font-family: 'Cormorant Garamond', serif; font-style: italic; font-size: 15px; color: var(--ink-soft); }
 
   /* Concept C -- Fraunces regular + simple mark */
-  .mark-row { display: flex; align-items: center; justify-content: center; gap: 14px; }
+  .mark-row { display: flex; align-items: baseline; justify-content: center; gap: 14px; }
   .wordmark-c { font-family: 'Fraunces', serif; font-weight: 500; font-style: normal; font-size: 52px; color: var(--ink); }
 
   /* Concept D -- app icon treatment */
@@ -81,13 +81,13 @@
   <div class="concept">
     <div class="label">Concept E — A's wordmark + C's mark, bolder, set to the left</div>
     <div class="mark-row">
-      <svg width="52" height="58" viewBox="0 0 52 58" fill="none">
-        <path d="M9 36C9 36 16 16 26 16C36 16 43 36 43 36" stroke="#3f5d54" stroke-width="4" stroke-linecap="round"/>
-        <path d="M16 28C16 28 20 19 26 19C32 19 36 28 36 28" stroke="#3f5d54" stroke-width="3.5" stroke-linecap="round" opacity="0.65"/>
+      <svg width="46" height="40" viewBox="0 0 46 40" fill="none">
+        <path d="M6 30C6 30 14 8 23 8C32 8 40 30 40 30" stroke="#3f5d54" stroke-width="3.2" stroke-linecap="round"/>
+        <path d="M13 24C13 24 18 13 23 13C28 13 33 24 33 24" stroke="#3f5d54" stroke-width="2.8" stroke-linecap="round" opacity="0.6"/>
       </svg>
       <div class="wordmark-a" style="font-size:52px;">vocare</div>
     </div>
-    <div class="note">Direct combination as asked: Concept A's italic wordmark, Concept C's mark bolded up (stroke-width 2.5&nbsp;→&nbsp;4, higher opacity on the inner arc) and set to the left rather than centered above. Scaled slightly to sit level with the italic baseline.</div>
+    <div class="note">Updated per feedback: mark now baseline-aligned (its bottom edge sits on the wordmark's actual text baseline via <code>align-items: baseline</code>, not box-center) rather than optically floated, and stroke weight eased back down (4&nbsp;→&nbsp;3.2 outer, 3.5&nbsp;→&nbsp;2.8 inner). Also resized slightly since anchoring to the baseline means it no longer has symmetric space to grow into above and below.</div>
   </div>
 
   <div class="concept">
