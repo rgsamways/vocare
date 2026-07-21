@@ -75,7 +75,19 @@ Also parked two ideas deliberately, not built: reframing the category as "career
 
 ## Entry 2 — Tooling Installed
 
-_Fill in: OpenSpec, scc, and anything else installed; versions; any install issues hit._
+Checked the machine before installing anything: Docker, `scc`, `sreditor`, `jscpd`, EAS CLI, Stripe CLI, Railway CLI, and Vercel CLI were already present (from earlier project work). Only `sem` was genuinely missing and needed a fresh install.
+
+**Node version — deliberately not the one already installed.** The machine had Node v25.8.0 active via `nvm4w`, but `nvm list available` confirmed v25 sits on Node's "Current" (non-LTS) line, not the stable one — the actual current Active LTS is **24.18.0**. Switched to that deliberately, matching "most recent *stable*" rather than "most recent, period."
+
+**Real friction hit, worth remembering:** `nvm4w` does not share global npm packages across Node versions — each version gets its own isolated global `node_modules`. Switching from 25.8.0 to 24.18.0 meant every npm-installed global CLI (`openspec`, `sreditor`, `jscpd`, `eas-cli`, `@railway/cli`, `vercel`) had to be reinstalled under the new version; `scc` and `sem` were unaffected since they're standalone binaries, not npm packages.
+
+**A real catch, not just a reinstall:** the first `npm install -g openspec` installed the wrong package — a namesquatted, unrelated placeholder (`openspec@0.0.0`, published 2019, no relation to the actual tool). The real OpenSpec CLI (Fission-AI's spec-driven-development tool this whole project is built around) is published as **`@fission-ai/openspec`**. Caught by actually running `openspec --version` after install rather than trusting the install succeeded — exactly the "verify, never just assert" discipline this project has leaned on since before any code existed.
+
+**`sem` install:** no Windows package-manager entry (chocolatey/scoop don't have it); installed from the GitHub release binary (`ataraxy-labs/sem`, `sem-windows-x86_64.zip`) to `%LOCALAPPDATA%\Programs\sem\`, added to user `PATH`.
+
+**Confirmed working versions:** Node 24.18.0, npm 11.16.0, `@fission-ai/openspec` 1.6.0, `scc` 3.7.0, `sreditor` 0.0.1, `jscpd`/`cpd` 5.0.12, `eas-cli` 21.0.2, `railway` 5.27.2, `vercel` 56.4.1, `sem` 0.21.0.
+
+**Still open:** `ANTHROPIC_API_KEY` is not set in the environment yet — needed before `sreditor judge` (or the app itself) can call the API. Robin's action, not something to set on his behalf. npm also flagged three postinstall scripts as blocked by its newer `allow-scripts` safety gate (`@railway/cli`, `esbuild`, `dtrace-provider`) — none of the affected tools failed their basic version checks, but worth knowing if something subtle breaks later.
 
 ---
 

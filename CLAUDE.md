@@ -28,7 +28,7 @@ This file is read by Claude at the start of every session working on this repo. 
 
 ## Project Facts (fill in as decided)
 
-- **Stack:** Node.js + TypeScript, Fastify (backend), React + Vite (web), Expo/React Native (mobile), PostgreSQL, Anthropic API (Claude Haiku 4.5)
+- **Stack:** Node.js 24.18.0 LTS (confirmed 2026-07-21, via `nvm4w` — not the 25.8.0 already on the machine, which is on Node's non-LTS "Current" line) + TypeScript, Fastify (backend), React + Vite (web), Expo/React Native (mobile), PostgreSQL, Anthropic API (Claude Haiku 4.5)
 - **Spec methodology:** OpenSpec — one change per module (M0–M11, see `vocare-project-specification.md`)
 - **Package manager:** npm (workspaces) — matches every other active project (Sreditor, Farpost web, Monkeyback frontend, Taplog web all use `package-lock.json`)
 - **Local Postgres (dev):** Docker, `postgres:16-alpine`, mapped to host port `5433` (avoids collision with the native Postgres 18 service and Monkeyback's container, both on 5432)
