@@ -78,7 +78,7 @@ session_mining_results
   id (pk), session_id (fk -> sessions.id),
     extracted_signals JSONB { ownership_language, tradeoff_reasoning,
     tech_mentions[], sentiment, clarity_score, growth_notes, topic_relevance_score,
-    audience_keyword_matches[], filler_word_count },
+    audience_keyword_matches[], filler_word_count, outcome_mentioned, quantified_impact_examples[] },
     mined_at
   # topic_relevance_score added per Section 17 — reused for free-tier abuse detection
   # (a session far outside normal career/work topics flags for throttling review),
@@ -155,6 +155,7 @@ Each module below becomes one OpenSpec change via the AI slash-command workflow 
 - Separate, async LLM pass over completed transcript (never real-time — keeps conversation phase judgment-free)
 - **Runs immediately per-session for now (decided 2026-07-21), not batched** — revisit the Batch API's 50% discount once real session volume makes it worth the added queue/schedule complexity; build the trigger so swapping to batched later doesn't require touching M2/M3
 - Extract: ownership language, tradeoff reasoning presence, tech/domain mentions, clarity, sentiment, notable growth signals
+- **Added 2026-07-21 — outcome/impact and quantified-impact.** STAR's "Result" step (Situation/Task/Action/Result) is a standard behavioral-interview structure; checks whether the user named what actually happened as a result of a decision (`outcome_mentioned`), and separately whether they used concrete numbers/metrics rather than vague terms (`quantified_impact_examples[]`, storing the real quoted phrase, same evidence-based approach as `audience_keyword_matches[]`).
 - **Added 2026-07-21 — filler-word count (voice sessions only), where the STT output actually preserves them (see M3's caveat).** Standard, well-accepted interview coaching signal ("um"/"uh" reduction) with none of the judgment baggage profanity detection would carry — considered and deliberately not building profanity detection, see Section 24.
 - **Also extract a topic-relevance score** — per Section 17's proposed reuse, a session far outside normal career/work topics is a natural signal for free-tier abuse throttling (jailbreak attempts to use the free sessions as a general-purpose chatbot), not just coaching feedback; this was proposed in the security pass but needs to actually be built here, not left as prose elsewhere
 - Store in `session_mining_results`, explicitly **not** written back into any user-facing "score"
