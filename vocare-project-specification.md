@@ -128,6 +128,7 @@ Each module below becomes one OpenSpec change via the AI slash-command workflow 
 
 ### M4 — Post-Session Mining Pipeline
 - Separate, async LLM pass over completed transcript (never real-time — keeps conversation phase judgment-free)
+- **Runs immediately per-session for now (decided 2026-07-21), not batched** — revisit the Batch API's 50% discount once real session volume makes it worth the added queue/schedule complexity; build the trigger so swapping to batched later doesn't require touching M2/M3
 - Extract: ownership language, tradeoff reasoning presence, tech/domain mentions, clarity, sentiment, notable growth signals
 - **Also extract a topic-relevance score** — per Section 17's proposed reuse, a session far outside normal career/work topics is a natural signal for free-tier abuse throttling (jailbreak attempts to use the free sessions as a general-purpose chatbot), not just coaching feedback; this was proposed in the security pass but needs to actually be built here, not left as prose elsewhere
 - Store in `session_mining_results`, explicitly **not** written back into any user-facing "score"
@@ -205,8 +206,8 @@ Each module below becomes one OpenSpec change via the AI slash-command workflow 
 **Updated during the drift audit — this list predated twelve of the fifteen verification passes and had gone stale. Revised to reflect current findings:**
 
 1. ~~Confirm the app name~~ — **resolved.** Section 18 found the original working name "Reps" heavily saturated in app stores already; the project was renamed to **Vocare** (`vocare.ca` confirmed available). This is done — no further action needed on naming.
-2. Confirm free-tier session count (recommend 3) before paywall
-3. Decide: does the mining pass run per-session immediately, or batched? (Immediate is simpler to build first; batching is cheaper at scale)
+2. ~~Confirm free-tier session count~~ — **resolved 2026-07-21: 3 free sessions** before the $10 paywall, per the spec's own recommendation. Enough to experience the open-ended format once end-to-end with a session or two left to act on feedback; cost is a non-factor at $0.02-0.03/session either way.
+3. ~~Decide mining-pass timing~~ — **resolved 2026-07-21: immediate**, not batched. At current volume the Batch API's 50% discount saves fractions of a cent — not worth the added queue/schedule complexity yet, and immediate mining means users see M5's coaching feedback right after the session, which matters more pre-launch than the cost saving does. **Not a one-way door — revisit batching once real session volume makes the discount material.** Flagged explicitly so it isn't lost: M4 was designed with this swap in mind, no changes needed to M2/M3 to switch later.
 4. ~~Confirm Expo vs. fully native Android~~ — **superseded by Section 2's Mobile row, now resolved:** decided 2026-07-21 — separate Vite web app + Expo mobile app, sharing a `/shared` logic package, not unified React Native Web
 5. Confirm hosting budget ceiling you're comfortable with pre-revenue. **Corrected estimate, updated for the Postgres switch:** Railway has no permanent free tier (Hobby is $5/month minimum), and Railway's managed Postgres (HA/Patroni tier) has its own cost curve as data grows — check current Railway Postgres pricing at real transcript volume rather than assuming the old MongoDB M0 free-tier numbers still apply. Realistic pre-revenue floor is still closer to **$15–25/month** once past a toy deployment, not $0, but the specific ceiling needs re-checking against Postgres's actual usage-based cost rather than Mongo's.
 6. **Added from Section 19:** minimum age for signup — 13+ absolute floor from Anthropic's own terms, 16+ recommended given where COPPA 2.0 is heading in 2026
