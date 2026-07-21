@@ -4,6 +4,8 @@
 
 A narrative record of how this got built, written in plain English at real milestones — not a replacement for git history or the OpenSpec archive, but the story those two don't tell on their own.
 
+**Added 2026-07-21 — this stays curated, on purpose.** For the comprehensive, nothing-too-remedial account of everything discussed and decided, see `journal/` instead — this file is the highlights reel, that one is the full record.
+
 ---
 
 ## Entry 0 — Origin (before the repo existed)

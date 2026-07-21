@@ -39,3 +39,5 @@ This file is read by Claude at the start of every session working on this repo. 
 ## Reference
 
 Full project specification (tech stack reasoning, module plan, 16 verification passes, 10 drift audits): `vocare-project-specification.md`
+
+**Development journal — added 2026-07-21, comprehensive, not curated.** `journal/YYYY-MM-DD.md` (index at `journal/README.md`) records *everything* — every brainstorm, decision, reversal, mockup iteration, tooling hiccup — at whatever level of detail, requested by Robin specifically so the full "what is this and how did we build it" story exists somewhere. Distinct from `BUILD_LOG.md`, which stays a curated highlights-only narrative. Keep the journal current the same way as the other docs — proactively, without asking first.
