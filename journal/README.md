@@ -10,5 +10,7 @@
 
 **Structure:** one file per working session/day, named `YYYY-MM-DD.md`, in this folder. Each file is a chronological account of that session. This index just lists them with a one-line hook, so a reader can either skim this page for orientation or open any specific day for the full account.
 
+**Session stats — standard part of every entry, added 2026-07-21.** Each day's file ends with a "Session stats" section: commit count, unique files touched, lines changed, and the drift-audit yield for that session, all computed from `git log`, never estimated. **Deliberately excluded: token counts or dollar cost.** Neither is reliably self-reportable from inside a session — the real number lives in the Anthropic Console's usage dashboard, tied to the project's API key. Don't guess at it here.
+
 **Sessions:**
 - [2026-07-21](2026-07-21.md) — First laptop session: read the planning docs, locked in the tech stack decisions (npm, Docker, architecture, pricing at $29), designed the anchors/audience-targeting feature end to end, worked through crisis-safety design under real pushback, built and iterated the UI mockup and brand/logo through several rounds of correction, set up the two-instance (`chat`/`cli`) dev process, ran multiple speculative gap-finding passes, and got all tooling installed and verified. Ends right before M0 actually starts.
