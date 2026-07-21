@@ -48,7 +48,13 @@ Chosen to match tooling you already run (Farpost, Sreditor) so there's no new pl
 
 ```
 users
-  id (pk), email, created_at, entitlement_status (free | paid), stripe_customer_id
+  id (pk), email, created_at, entitlement_status (free | paid), stripe_customer_id,
+  target_role, target_industry            # nullable, optional, editable anytime — added 2026-07-21
+  # Private practice preference used to steer M2's system prompt and M4's mining.
+  # NOT the same thing as M8's Tier 2a self-tagged stack/role -- that is a separate,
+  # explicitly consent-gated ask for the sellable data layer. This field is never
+  # sold or aggregated; it exists purely to make the user's own practice sessions
+  # more relevant to the audience they're actually preparing for.
 
 sessions
   id (pk), user_id (fk -> users.id), started_at, ended_at, mode (voice|text), status (in_progress|complete)
@@ -59,11 +65,14 @@ transcript_turns
 session_mining_results
   id (pk), session_id (fk -> sessions.id),
     extracted_signals JSONB { ownership_language, tradeoff_reasoning,
-    tech_mentions[], sentiment, clarity_score, growth_notes, topic_relevance_score },
+    tech_mentions[], sentiment, clarity_score, growth_notes, topic_relevance_score,
+    audience_keyword_matches[] },
     mined_at
   # topic_relevance_score added per Section 17 — reused for free-tier abuse detection
   # (a session far outside normal career/work topics flags for throttling review),
   # not just user-facing coaching signal
+  # audience_keyword_matches[] added 2026-07-21 -- { term, quoted_phrase } pairs,
+  # only populated when users.target_role is set; see M4
 
 feedback_reports
   id (pk), session_id (fk -> sessions.id), coaching_notes[], generated_at
@@ -115,6 +124,7 @@ Each module below becomes one OpenSpec change via the AI slash-command workflow 
 
 ### M2 — Conversation Engine (core)
 - System prompt design: open-ended, non-technical, past/present/future question arc
+- **Added 2026-07-21 — optional target-role/industry input**, captured once at onboarding or edited anytime (`users.target_role`/`target_industry`, see Section 3), fed into the system prompt so follow-up questions land closer to what actually matters for that audience (a backend-infra candidate gets asked about distributed-systems tradeoffs; an EM candidate gets asked about stakeholder alignment). Entirely optional — the generic past/present/future arc above is the fallback when it's unset. **Explicitly not the same flow as M8's Tier 2a self-tagging** — this is a private practice preference, never sold or aggregated; don't let the two asks get conflated into one consent flow later.
 - Adaptive follow-up logic (detect vague answers, prompt for specifics — *without* turning into a technical quiz)
 - Session state machine (start → in-progress → complete)
 - Text-only mode first (voice comes in M3) to de-risk the hardest part (prompt design) before adding capture complexity
@@ -133,10 +143,12 @@ Each module below becomes one OpenSpec change via the AI slash-command workflow 
 - Extract: ownership language, tradeoff reasoning presence, tech/domain mentions, clarity, sentiment, notable growth signals
 - **Also extract a topic-relevance score** — per Section 17's proposed reuse, a session far outside normal career/work topics is a natural signal for free-tier abuse throttling (jailbreak attempts to use the free sessions as a general-purpose chatbot), not just coaching feedback; this was proposed in the security pass but needs to actually be built here, not left as prose elsewhere
 - Store in `session_mining_results`, explicitly **not** written back into any user-facing "score"
-- **Deliverable:** every completed session produces a structured mining record, serving both the coaching pipeline (M5) and the abuse-detection need (Section 17)
+- **Added 2026-07-21 — audience-aware keyword/phrase matching.** When `users.target_role` is set, the mining pass checks the transcript against a curated role-language reference set (a small library of relevant terms/phrases per role-category — e.g. "SLA," "on-call," "stakeholder alignment" — this reference set itself is new build work, not something that exists yet) and stores actual matched quotes in `audience_keyword_matches[]`, not just a count. Grounded in the user's real words, not a fuzzy "sounds right" judgment — keeps this evidence-based rather than an opaque score dressed up as audience fit.
+- **Deliverable:** every completed session produces a structured mining record, serving the coaching pipeline (M5), the progress trend (M6), and the abuse-detection need (Section 17)
 
 ### M5 — Coaching Feedback (user-facing)
 - Turn mining results into plain-language, non-judgmental coaching notes ("You described what you built clearly — try adding *why* you chose that approach next time")
+- **Added 2026-07-21 — quote the user's actual words, don't just paraphrase.** Where `extracted_signals` has a specific supporting line (ownership language, a tradeoff explanation, an `audience_keyword_matches[]` hit), surface the real quoted phrase from their own transcript rather than an abstract description — more concrete, more useful, and directly grounds any audience-relevant language called out instead of asserting it without evidence
 - No numeric score shown to the user by default — framing is developmental, not evaluative
 - **Build with screen-reader compatibility from the start** — per Section 16, this was identified as a real gap independent of any legal AODA threshold; semantic HTML and proper ARIA labeling here costs little now versus retrofitting later
 - **Deliverable:** user sees a feedback report after each session, accessible via screen reader
@@ -144,6 +156,7 @@ Each module below becomes one OpenSpec change via the AI slash-command workflow 
 ### M6 — Progress Over Time
 - Session history view
 - Simple trend indicators (e.g. "more specific about tradeoffs than 3 sessions ago") derived from comparing mining results over time
+- **Added 2026-07-21 — audience-alignment trend, when a target role is set.** A plain-language sentence built from `audience_keyword_matches[]` trending over time (e.g. "you're using more of the language a [target role] conversation would expect than 3 sessions ago") — same qualitative, no-score framing as the trend indicator above, not a hidden numeric match percentage. Naturally absent when no target role is declared; nothing forces the input.
 - **Same accessibility requirement as M5** — trend/chart displays need a non-visual equivalent (e.g. text-described trend summary), not just a graphical view
 - **Deliverable:** returning users can see growth across sessions, not just a single result
 

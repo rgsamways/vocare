@@ -54,6 +54,14 @@ Also settled: the install list for M0 (OpenSpec CLI, `scc`, `sreditor`, `jscpd`,
 
 ---
 
+## Entry 1.6 — Audience-Targeted Practice, added to the plan
+
+An interface mockup (`mockups/interface-v1.html`) surfaced a real product idea before any code existed: let users optionally declare who they're practicing for (target role/industry), and use that to make the whole loop more relevant — sharper follow-up questions in M2, actual quoted phrases and role-language matching in M4/M5, and a qualitative audience-alignment trend in M6. Deliberately kept evidence-based (quoting real transcript phrases against a curated role-language reference set) rather than a fuzzy "sounds right for this employer" judgment, to stay inside the existing no-score, developmental-not-evaluative principle already locked into M5/M6. Explicitly kept separate from M8's Tier 2a self-tagging — this is a private practice preference, never sold or aggregated, not another consent-gated data-tier ask.
+
+Folded into M2/M4/M5/M6 and the `users` table (Section 3) directly, since none of those modules are built yet — this is a design refinement, not a scope addition to something already shipped.
+
+---
+
 ## Entry 2 — Tooling Installed
 
 _Fill in: OpenSpec, scc, and anything else installed; versions; any install issues hit._

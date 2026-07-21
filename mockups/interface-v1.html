@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vocare — Interface Mockup v1</title>
+<style>
+  :root {
+    --bg: #f7f4ee;
+    --panel: #ffffff;
+    --ink: #2b2924;
+    --ink-soft: #5c584f;
+    --accent: #3f5d54;
+    --accent-soft: #e7ede9;
+    --line: #e4dfd3;
+    --warn-bg: #fbeee0;
+    --warn-ink: #7a4a1f;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, "Segoe UI", Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+  }
+  .shell {
+    max-width: 480px;
+    margin: 0 auto;
+    min-height: 100vh;
+    background: var(--panel);
+    box-shadow: 0 0 40px rgba(0,0,0,0.06);
+    display: flex;
+    flex-direction: column;
+  }
+  header.appbar {
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid var(--line);
+  }
+  .wordmark {
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+  }
+  nav.tabs {
+    display: flex;
+    gap: 4px;
+    padding: 10px 12px;
+    background: var(--accent-soft);
+    overflow-x: auto;
+  }
+  nav.tabs button {
+    border: none;
+    background: transparent;
+    padding: 8px 12px;
+    font-size: 12.5px;
+    border-radius: 20px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    white-space: nowrap;
+  }
+  nav.tabs button.active {
+    background: var(--accent);
+    color: #fff;
+  }
+  main { flex: 1; padding: 24px 20px 40px; }
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  h1.title { font-size: 21px; margin: 0 0 6px; }
+  p.subtitle { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 24px; line-height: 1.5; }
+
+  .field { margin-bottom: 16px; }
+  .field label { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 6px; }
+  .field input[type="email"] {
+    width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
+    font-size: 14px; background: #fbfaf7;
+  }
+  .checkline { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--ink-soft); margin: 18px 0; line-height: 1.5; }
+  .btn {
+    display: inline-block; width: 100%; padding: 13px 18px; border-radius: 10px; border: none;
+    background: var(--accent); color: #fff; font-size: 14.5px; font-weight: 600; cursor: pointer; text-align: center;
+  }
+  .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
+  .fine { font-size: 11.5px; color: var(--ink-soft); text-align: center; margin-top: 14px; line-height: 1.5; }
+
+  .noscore-strip {
+    background: var(--accent-soft); border-radius: 10px; padding: 10px 14px; font-size: 12px;
+    color: var(--accent); margin-bottom: 18px; display: flex; align-items: center; gap: 8px;
+  }
+  .bubble { max-width: 84%; padding: 12px 15px; border-radius: 16px; margin-bottom: 12px; font-size: 14px; line-height: 1.5; }
+  .bubble.ai { background: var(--accent-soft); color: var(--ink); border-bottom-left-radius: 4px; }
+  .bubble.user { background: var(--accent); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
+  .composer {
+    margin-top: 20px; display: flex; gap: 8px; align-items: center;
+    border: 1px solid var(--line); border-radius: 24px; padding: 6px 6px 6px 16px; background: #fbfaf7;
+  }
+  .composer input { flex: 1; border: none; background: transparent; font-size: 14px; outline: none; }
+  .iconbtn {
+    width: 38px; height: 38px; border-radius: 50%; border: none; background: var(--accent); color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 15px; cursor: pointer; flex-shrink: 0;
+  }
+  .iconbtn.ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
+  .endlink { display: block; text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 22px; text-decoration: underline; cursor: pointer; }
+
+  .note-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .note-card h3 { font-size: 13.5px; margin: 0 0 6px; }
+  .note-card p { font-size: 13.5px; color: var(--ink-soft); margin: 0; line-height: 1.55; }
+  .chip-row { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+  .chip { font-size: 11px; padding: 4px 10px; border-radius: 20px; background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .chip.grow { background: var(--warn-bg); color: var(--warn-ink); }
+
+  .history-row { display: flex; justify-content: space-between; align-items: baseline; padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .history-row:last-child { border-bottom: none; }
+  .history-date { font-size: 12px; color: var(--ink-soft); }
+  .history-note { font-size: 13.5px; margin-top: 3px; }
+  .trend-line {
+    background: var(--accent-soft); border-radius: 10px; padding: 14px; font-size: 13px; color: var(--accent);
+    margin-bottom: 20px; line-height: 1.5;
+  }
+
+  .paywall-card { border: 1px solid var(--line); border-radius: 14px; padding: 22px; text-align: center; }
+  .price { font-size: 34px; font-weight: 700; margin: 6px 0 2px; }
+  .price small { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
+  .used-strip { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 20px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <header class="appbar">
+    <div class="wordmark">Vocare</div>
+  </header>
+
+  <nav class="tabs">
+    <button class="active" data-screen="signup">1. Sign up</button>
+    <button data-screen="conversation">2. Conversation</button>
+    <button data-screen="feedback">3. Feedback</button>
+    <button data-screen="progress">4. Progress</button>
+    <button data-screen="paywall">5. Paywall</button>
+  </nav>
+
+  <main>
+
+    <!-- 1. SIGN UP -->
+    <section class="screen active" id="signup">
+      <h1 class="title">Practice out loud.</h1>
+      <p class="subtitle">No score. No trivia. Just talk about what you've built, what you're doing, and what you want next — then see what came through, after.</p>
+
+      <div class="field">
+        <label>Email</label>
+        <input type="email" placeholder="you@example.com" />
+      </div>
+
+      <div class="checkline">
+        <input type="checkbox" checked style="margin-top:2px" />
+        <span>I'm 16 or older. Vocare uses an AI system to hold the conversation — you'll always know when you're talking to it, not a person.</span>
+      </div>
+
+      <button class="btn">Send my sign-in link</button>
+      <div class="fine">No password. We'll email a secure link. 3 practice sessions free, then $10 once — not a subscription.</div>
+    </section>
+
+    <!-- 2. CONVERSATION -->
+    <section class="screen" id="conversation">
+      <div class="noscore-strip">⏸ Not scored. Nothing here is being graded — just talk.</div>
+
+      <div class="bubble ai">What have you been working on lately — something you'd actually want to talk about?</div>
+      <div class="bubble user">Migrating our billing service off a monolith. Took about three months.</div>
+      <div class="bubble ai">What made that worth three months, versus a smaller fix?</div>
+      <div class="bubble user">The old system couldn't handle proration, so every plan change needed a manual patch.</div>
+      <div class="bubble ai">Nice — what did you personally decide, versus what the team decided together?</div>
+
+      <div class="composer">
+        <input type="text" placeholder="Type your reply..." />
+        <button class="iconbtn ghost">🎙</button>
+        <button class="iconbtn">➤</button>
+      </div>
+      <span class="endlink">End session &amp; get feedback</span>
+    </section>
+
+    <!-- 3. FEEDBACK -->
+    <section class="screen" id="feedback">
+      <h1 class="title">After your session</h1>
+      <p class="subtitle">No score — just what came through, in plain language.</p>
+
+      <div class="note-card">
+        <h3>Ownership language</h3>
+        <p>You were clear about what <em>you</em> decided versus what the team decided — that distinction came through well.</p>
+        <div class="chip-row"><span class="chip">Came through clearly</span></div>
+      </div>
+
+      <div class="note-card">
+        <h3>Tradeoff reasoning</h3>
+        <p>Try naming the alternative you didn't pick next time — "we could have patched it, but chose to migrate because…" makes the reasoning visible, not just the outcome.</p>
+        <div class="chip-row"><span class="chip grow">An area to grow</span></div>
+      </div>
+
+      <div class="note-card">
+        <h3>Notable</h3>
+        <p>You described a three-month decision in one clear sentence — that kind of compression is worth keeping.</p>
+      </div>
+    </section>
+
+    <!-- 4. PROGRESS -->
+    <section class="screen" id="progress">
+      <h1 class="title">Your progress</h1>
+      <div class="trend-line">You've been more specific about tradeoffs over your last 3 sessions than your first 3 — that's the biggest shift so far.</div>
+
+      <div class="history-row">
+        <div>
+          <div class="history-note">Talked about the billing migration</div>
+          <div class="history-date">Today</div>
+        </div>
+      </div>
+      <div class="history-row">
+        <div>
+          <div class="history-note">Talked about mentoring a junior dev</div>
+          <div class="history-date">4 days ago</div>
+        </div>
+      </div>
+      <div class="history-row">
+        <div>
+          <div class="history-note">Talked about a failed launch</div>
+          <div class="history-date">9 days ago</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. PAYWALL -->
+    <section class="screen" id="paywall">
+      <div class="used-strip">You've used all 3 free sessions.</div>
+      <h1 class="title">Keep practicing</h1>
+      <p class="subtitle">One payment. Yours for as long as you want it — not a monthly subscription.</p>
+
+      <div class="paywall-card">
+        <div class="price">$10 <small>once</small></div>
+        <p style="font-size:12.5px; color:var(--ink-soft); margin: 10px 0 18px;">Unlimited practice sessions, feedback after every one, progress over time.</p>
+        <button class="btn">Continue to payment</button>
+        <div style="margin-top:12px;">
+          <button class="btn secondary">Not right now</button>
+        </div>
+      </div>
+      <div class="fine">Paid on the web either way — the Android app just checks your account, same as here.</div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  document.querySelectorAll('nav.tabs button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('nav.tabs button').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.screen).classList.add('active');
+    });
+  });
+</script>
+</body>
+</html>
