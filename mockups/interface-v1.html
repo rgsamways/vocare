@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vocare — Interface Mockup v2</title>
+<title>Vocare — Interface Mockup v3</title>
+<script src="https://unpkg.com/lucide@latest"></script>
 <style>
   :root {
     --bg: #f7f4ee;
@@ -62,6 +63,9 @@
     cursor: pointer;
     white-space: nowrap;
     flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
   }
   nav.tabs button.active {
     background: var(--accent);
@@ -75,15 +79,19 @@
   h2.subtitle-h { font-size: 14.5px; margin: 26px 0 10px; color: var(--ink-soft); text-transform: uppercase; letter-spacing: 0.04em; }
   p.subtitle { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 20px; line-height: 1.5; }
 
+  svg.lucide-icon { width: 16px; height: 16px; stroke-width: 2; vertical-align: -3px; flex-shrink: 0; }
+  svg.lucide-icon.sm { width: 13px; height: 13px; }
+  svg.lucide-icon.lg { width: 20px; height: 20px; }
+
   .field { margin-bottom: 16px; }
-  .field label { display: block; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 6px; }
+  .field label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 6px; }
   .field input[type="email"], .field select {
     width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
     font-size: 14px; background: #fbfaf7;
   }
   .checkline { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--ink-soft); margin: 18px 0; line-height: 1.5; }
   .btn {
-    display: inline-block; width: 100%; padding: 13px 18px; border-radius: 10px; border: none;
+    display: inline-flex; align-items: center; justify-content: center; gap: 7px; width: 100%; padding: 13px 18px; border-radius: 10px; border: none;
     background: var(--accent); color: #fff; font-size: 14.5px; font-weight: 600; cursor: pointer; text-align: center;
   }
   .btn.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
@@ -108,13 +116,14 @@
   .composer input { flex: 1; border: none; background: transparent; font-size: 14px; outline: none; }
   .iconbtn {
     width: 38px; height: 38px; border-radius: 50%; border: none; background: var(--accent); color: #fff;
-    display: flex; align-items: center; justify-content: center; font-size: 15px; cursor: pointer; flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
   }
+  .iconbtn svg.lucide-icon { vertical-align: 0; }
   .iconbtn.ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
   .endlink { display: block; text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 22px; text-decoration: underline; cursor: pointer; }
 
   .note-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
-  .note-card h3 { font-size: 13.5px; margin: 0 0 6px; }
+  .note-card h3 { font-size: 13.5px; margin: 0 0 6px; display: flex; align-items: center; gap: 7px; }
   .note-card p { font-size: 13.5px; color: var(--ink-soft); margin: 0; line-height: 1.55; }
   .note-card blockquote {
     margin: 8px 0 0; padding: 8px 12px; background: var(--bg); border-left: 3px solid var(--accent);
@@ -128,6 +137,9 @@
   details.history-row:last-child { border-bottom: none; }
   details.history-row summary { cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: baseline; }
   details.history-row summary::-webkit-details-marker { display: none; }
+  details.history-row summary .chevron-icon { transition: transform 0.15s; }
+  details.history-row[open] summary .chevron-icon { transform: rotate(90deg); }
+  .history-note-wrap { display: flex; align-items: center; gap: 8px; }
   .history-date { font-size: 12px; color: var(--ink-soft); }
   .history-note { font-size: 13.5px; }
   .history-expanded { margin-top: 12px; padding: 12px; background: var(--bg); border-radius: 10px; font-size: 12.5px; line-height: 1.6; }
@@ -136,34 +148,35 @@
 
   .trend-line {
     background: var(--accent-soft); border-radius: 10px; padding: 14px; font-size: 13px; color: var(--accent);
-    margin-bottom: 14px; line-height: 1.5;
+    margin-bottom: 14px; line-height: 1.5; display: flex; gap: 10px; align-items: flex-start;
   }
   .anchor-card {
     border: 1px solid var(--line); border-radius: 12px; padding: 14px; margin-bottom: 10px;
   }
   .anchor-card.active { border-color: var(--accent); }
-  .anchor-card h4 { font-size: 13.5px; margin: 0 0 4px; }
+  .anchor-card h4 { font-size: 13.5px; margin: 0 0 4px; display: flex; align-items: center; gap: 7px; }
   .anchor-card p { font-size: 12px; color: var(--ink-soft); margin: 0 0 8px; }
   .anchor-revision { font-size: 11.5px; color: var(--ink-soft); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 4px; }
-  .add-anchor-link { display: block; text-align: center; font-size: 13px; color: var(--accent); font-weight: 600; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; cursor: pointer; }
+  .add-anchor-link { display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; font-size: 13px; color: var(--accent); font-weight: 600; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; cursor: pointer; }
 
-  .profile-row { display: flex; justify-content: space-between; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
+  .profile-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
   .profile-row:last-child { border-bottom: none; }
-  .profile-row span.label { color: var(--ink-soft); }
+  .profile-row span.label { display: flex; align-items: center; gap: 8px; color: var(--ink-soft); }
 
   .paywall-card { border: 1px solid var(--line); border-radius: 14px; padding: 22px; text-align: center; }
   .price { font-size: 34px; font-weight: 700; margin: 6px 0 2px; }
   .price small { font-size: 13px; font-weight: 500; color: var(--ink-soft); }
-  .used-strip { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 20px; }
+  .used-strip { background: var(--warn-bg); color: var(--warn-ink); border-radius: 10px; padding: 10px 14px; font-size: 12.5px; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .unlimited-line { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12.5px; color: var(--ink-soft); margin: 10px 0 18px; }
 
   .safety-card {
     background: var(--safe-bg); color: var(--safe-ink); border-radius: 14px; padding: 16px;
     margin-bottom: 14px; border: 1px solid #c9d1ee;
   }
-  .safety-card h3 { font-size: 13.5px; margin: 0 0 6px; }
+  .safety-card h3 { font-size: 13.5px; margin: 0 0 6px; display: flex; align-items: center; gap: 7px; }
   .safety-card p { font-size: 12.5px; margin: 0 0 10px; line-height: 1.5; }
-  .safety-card a.resource-link { display: block; background: #fff; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; margin-bottom: 6px; color: var(--safe-ink); text-decoration: none; font-weight: 600; }
-  .example-flag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 12px; display: block; }
+  .safety-card a.resource-link { display: flex; align-items: flex-start; gap: 9px; background: #fff; border-radius: 8px; padding: 10px 12px; font-size: 12.5px; margin-bottom: 6px; color: var(--safe-ink); text-decoration: none; font-weight: 600; }
+  .example-flag { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--ink-soft); margin-bottom: 12px; display: flex; align-items: center; gap: 6px; }
 </style>
 </head>
 <body>
@@ -173,13 +186,13 @@
   </header>
 
   <nav class="tabs">
-    <button class="active" data-screen="signup">Sign up</button>
-    <button data-screen="conversation">Conversation</button>
-    <button data-screen="safety">🔍 Safety demo</button>
-    <button data-screen="feedback">Feedback</button>
-    <button data-screen="progress">Progress &amp; Anchors</button>
-    <button data-screen="profile">Profile</button>
-    <button data-screen="paywall">Paywall</button>
+    <button class="active" data-screen="signup"><i data-lucide="user-plus" class="lucide-icon sm"></i>Sign up</button>
+    <button data-screen="conversation"><i data-lucide="message-circle" class="lucide-icon sm"></i>Conversation</button>
+    <button data-screen="safety"><i data-lucide="life-buoy" class="lucide-icon sm"></i>Safety demo</button>
+    <button data-screen="feedback"><i data-lucide="sparkles" class="lucide-icon sm"></i>Feedback</button>
+    <button data-screen="progress"><i data-lucide="trending-up" class="lucide-icon sm"></i>Progress</button>
+    <button data-screen="profile"><i data-lucide="user" class="lucide-icon sm"></i>Profile</button>
+    <button data-screen="paywall"><i data-lucide="credit-card" class="lucide-icon sm"></i>Paywall</button>
   </nav>
 
   <main>
@@ -190,12 +203,12 @@
       <p class="subtitle">No score. No trivia. Just talk about what you've built, what you're doing, and what you want next — then see what came through, after.</p>
 
       <div class="field">
-        <label>Email</label>
+        <label><i data-lucide="mail" class="lucide-icon sm"></i>Email</label>
         <input type="email" placeholder="you@example.com" />
       </div>
 
       <div class="field">
-        <label>Country</label>
+        <label><i data-lucide="globe" class="lucide-icon sm"></i>Country</label>
         <select>
           <option>Canada</option>
           <option>United States</option>
@@ -216,8 +229,8 @@
 
     <!-- CONVERSATION -->
     <section class="screen" id="conversation">
-      <div class="noscore-strip">⏸ Not scored. Nothing here is being graded — just talk.</div>
-      <div class="anchor-badge">🎯 Practicing for: Backend Engineer, FinTech</div>
+      <div class="noscore-strip"><i data-lucide="message-circle" class="lucide-icon"></i>Not scored. Nothing here is being graded — just talk.</div>
+      <div class="anchor-badge"><i data-lucide="target" class="lucide-icon sm"></i>Practicing for: Backend Engineer, FinTech</div>
 
       <div class="bubble ai">What have you been working on lately — something you'd actually want to talk about?</div>
       <div class="bubble user">Migrating our billing service off a monolith. Took about three months.</div>
@@ -227,24 +240,27 @@
 
       <div class="composer">
         <input type="text" placeholder="Type your reply..." />
-        <button class="iconbtn ghost" aria-label="Use voice input">🎙</button>
-        <button class="iconbtn" aria-label="Send message">➤</button>
+        <button class="iconbtn ghost" aria-label="Use voice input"><i data-lucide="mic" class="lucide-icon"></i></button>
+        <button class="iconbtn" aria-label="Send message"><i data-lucide="send" class="lucide-icon"></i></button>
       </div>
       <span class="endlink">End session &amp; get feedback</span>
     </section>
 
     <!-- SAFETY NET EXAMPLE -->
     <section class="screen" id="safety">
-      <span class="example-flag">Mockup artifact, not a real screen — never appears in the real app's navigation, only inline, rarely</span>
+      <span class="example-flag"><i data-lucide="flask-conical" class="lucide-icon sm"></i>Mockup artifact, not a real screen — never appears in the real app's navigation, only inline, rarely</span>
       <h1 class="title">What the safety net looks like</h1>
       <p class="subtitle">This isn't a screening layer on every message. Ordinary stress, frustration, or venting about work never triggers anything. It exists only for the rare case of explicit crisis language — checked live, per message, not after the session ends.</p>
 
       <div class="bubble user">Honestly some days I don't see the point in any of this anymore.</div>
 
       <div class="safety-card">
-        <h3>Before we keep going —</h3>
+        <h3><i data-lucide="heart-handshake" class="lucide-icon"></i>Before we keep going —</h3>
         <p>That sounded heavier than job-search stress. No pressure to say more here.</p>
-        <a class="resource-link" href="#">Talk to someone now — free &amp; confidential<br><span style="font-weight:400; font-size:11px;">Talk Suicide Canada · 1-833-456-4566 · 24/7</span></a>
+        <a class="resource-link" href="#">
+          <i data-lucide="life-buoy" class="lucide-icon" style="margin-top:1px;"></i>
+          <span>Talk to someone now — free &amp; confidential<br><span style="font-weight:400; font-size:11px;">Talk Suicide Canada · 1-833-456-4566 · 24/7</span></span>
+        </a>
         <p style="margin-bottom:0;">Whenever you're ready, we can keep going, or stop here — either is completely fine.</p>
       </div>
 
@@ -257,26 +273,26 @@
       <p class="subtitle">No score — just what came through, in plain language, in your own words.</p>
 
       <div class="note-card">
-        <h3>Ownership language</h3>
+        <h3><i data-lucide="user-check" class="lucide-icon sm"></i>Ownership language</h3>
         <p>You were clear about what <em>you</em> decided versus what the team decided — that distinction came through well.</p>
         <blockquote>"I decided we couldn't keep patching it manually."</blockquote>
       </div>
 
       <div class="note-card">
-        <h3>Outcome &amp; impact</h3>
+        <h3><i data-lucide="flag" class="lucide-icon sm"></i>Outcome &amp; impact</h3>
         <p>You named the problem clearly, but the story stopped at the decision — try finishing it with what actually happened.</p>
         <div class="chip-row"><span class="chip grow">An area to grow</span></div>
       </div>
 
       <div class="note-card">
-        <h3>Speaking toward: Backend Engineer, FinTech</h3>
+        <h3><i data-lucide="target" class="lucide-icon sm"></i>Speaking toward: Backend Engineer, FinTech</h3>
         <p>You used language this kind of role listens for.</p>
         <blockquote>"...couldn't handle proration..."</blockquote>
         <div class="chip-row"><span class="chip">Came through clearly</span></div>
       </div>
 
       <div class="note-card">
-        <h3>Filler words <span style="color:var(--ink-soft); font-weight:400;">(voice session)</span></h3>
+        <h3><i data-lucide="mic" class="lucide-icon sm"></i>Filler words <span style="color:var(--ink-soft); font-weight:400;">(voice session)</span></h3>
         <p>Fewer "um"s and "uh"s than your last voice session — that's a real, noticeable shift.</p>
       </div>
     </section>
@@ -284,12 +300,15 @@
     <!-- PROGRESS & ANCHORS -->
     <section class="screen" id="progress">
       <h1 class="title">Your progress</h1>
-      <div class="trend-line">You've been more specific about tradeoffs over your last 3 sessions than your first 3 — that's the biggest shift so far.</div>
-      <div class="trend-line">Against your Backend Engineer, FinTech anchor: you're using more of the language this role expects than 3 sessions ago.</div>
+      <div class="trend-line"><i data-lucide="trending-up" class="lucide-icon"></i>You've been more specific about tradeoffs over your last 3 sessions than your first 3 — that's the biggest shift so far.</div>
+      <div class="trend-line"><i data-lucide="target" class="lucide-icon"></i>Against your Backend Engineer, FinTech anchor: you're using more of the language this role expects than 3 sessions ago.</div>
 
       <h2 class="subtitle-h">Past sessions</h2>
       <details class="history-row" open>
-        <summary><span class="history-note">Talked about the billing migration</span><span class="history-date">Today</span></summary>
+        <summary>
+          <span class="history-note-wrap"><i data-lucide="chevron-right" class="lucide-icon sm chevron-icon"></i><span class="history-note">Talked about the billing migration</span></span>
+          <span class="history-date">Today</span>
+        </summary>
         <div class="history-expanded">
           <div class="mini-bubble"><b>You:</b> Migrating our billing service off a monolith. Took about three months.</div>
           <div class="mini-bubble"><b>Vocare:</b> What made that worth three months, versus a smaller fix?</div>
@@ -297,51 +316,57 @@
         </div>
       </details>
       <details class="history-row">
-        <summary><span class="history-note">Talked about mentoring a junior dev</span><span class="history-date">4 days ago</span></summary>
+        <summary>
+          <span class="history-note-wrap"><i data-lucide="chevron-right" class="lucide-icon sm chevron-icon"></i><span class="history-note">Talked about mentoring a junior dev</span></span>
+          <span class="history-date">4 days ago</span>
+        </summary>
         <div class="history-expanded">Full transcript and feedback report open here, same as above.</div>
       </details>
       <details class="history-row">
-        <summary><span class="history-note">Talked about a failed launch</span><span class="history-date">9 days ago</span></summary>
+        <summary>
+          <span class="history-note-wrap"><i data-lucide="chevron-right" class="lucide-icon sm chevron-icon"></i><span class="history-note">Talked about a failed launch</span></span>
+          <span class="history-date">9 days ago</span>
+        </summary>
         <div class="history-expanded">Full transcript and feedback report open here, same as above.</div>
       </details>
 
       <h2 class="subtitle-h">Your anchors</h2>
       <div class="anchor-card active">
-        <h4>🎯 Backend Engineer, FinTech</h4>
+        <h4><i data-lucide="target" class="lucide-icon sm"></i>Backend Engineer, FinTech</h4>
         <p>Active · linked to today's session</p>
         <div class="anchor-revision">Revised 3 sessions ago: narrowed from "any backend role" to "backend infra, fintech specifically."</div>
       </div>
       <div class="anchor-card">
-        <h4>Engineering Manager (general)</h4>
+        <h4><i data-lucide="target" class="lucide-icon sm"></i>Engineering Manager (general)</h4>
         <p>Archived</p>
       </div>
-      <div class="add-anchor-link">+ Add another anchor</div>
+      <div class="add-anchor-link"><i data-lucide="plus-circle" class="lucide-icon sm"></i>Add another anchor</div>
     </section>
 
     <!-- PROFILE -->
     <section class="screen" id="profile">
       <h1 class="title">Account</h1>
-      <div class="profile-row"><span class="label">Email</span><span>you@example.com</span></div>
-      <div class="profile-row"><span class="label">Country</span><span>Canada</span></div>
-      <div class="profile-row"><span class="label">Status</span><span>Unlocked — paid $29 on Jun 3, 2026</span></div>
-      <div class="profile-row"><span class="label">Sessions practiced</span><span>7</span></div>
+      <div class="profile-row"><span class="label"><i data-lucide="mail" class="lucide-icon sm"></i>Email</span><span>you@example.com</span></div>
+      <div class="profile-row"><span class="label"><i data-lucide="globe" class="lucide-icon sm"></i>Country</span><span>Canada</span></div>
+      <div class="profile-row"><span class="label"><i data-lucide="badge-check" class="lucide-icon sm"></i>Status</span><span>Unlocked — paid $29 on Jun 3, 2026</span></div>
+      <div class="profile-row"><span class="label"><i data-lucide="history" class="lucide-icon sm"></i>Sessions practiced</span><span>7</span></div>
 
       <h2 class="subtitle-h">Manage account</h2>
-      <button class="btn secondary" style="margin-bottom:10px;">Change email</button>
-      <button class="btn danger">Delete my account</button>
+      <button class="btn secondary" style="margin-bottom:10px;"><i data-lucide="pencil" class="lucide-icon sm"></i>Change email</button>
+      <button class="btn danger"><i data-lucide="trash-2" class="lucide-icon sm"></i>Delete my account</button>
       <p class="fine">Deleting your account removes every session, transcript, and feedback report tied to it.</p>
     </section>
 
     <!-- PAYWALL -->
     <section class="screen" id="paywall">
-      <div class="used-strip">You've used all 3 free sessions.</div>
+      <div class="used-strip"><i data-lucide="lock" class="lucide-icon sm"></i>You've used all 3 free sessions.</div>
       <h1 class="title">Keep practicing</h1>
       <p class="subtitle">One payment. Yours for as long as you want it — not a monthly subscription.</p>
 
       <div class="paywall-card">
         <div class="price">$29 <small>once</small></div>
-        <p style="font-size:12.5px; color:var(--ink-soft); margin: 10px 0 18px;">Unlimited practice sessions, feedback after every one, progress over time. Less than a month of LinkedIn Premium.</p>
-        <button class="btn">Continue to payment</button>
+        <div class="unlimited-line"><i data-lucide="infinity" class="lucide-icon sm"></i>Unlimited practice sessions, feedback after every one, progress over time. Less than a month of LinkedIn Premium.</div>
+        <button class="btn"><i data-lucide="unlock" class="lucide-icon sm"></i>Continue to payment</button>
         <div style="margin-top:12px;">
           <button class="btn secondary">Not right now</button>
         </div>
@@ -361,6 +386,7 @@
       document.getElementById(btn.dataset.screen).classList.add('active');
     });
   });
+  lucide.createIcons();
 </script>
 </body>
 </html>
