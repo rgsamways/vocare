@@ -1,0 +1,26 @@
+schema: spec-driven
+
+# Project context — Section 1 of vocare-project-specification.md (Product Thesis),
+# kept in sync manually; that file is the source of truth.
+context: |
+  Vocare is a cheap, unlimited-use AI interview-practice tool: a person just talks
+  about what they've done, what they're doing, and what they want next — no syntax
+  trivia, no scoring pressure in the moment. Feedback and any downstream value happen
+  strictly after the conversation, never during it. Business model: a $29 one-time
+  lifetime fee (not a subscription), plus an optional, strictly consent-gated data
+  layer that only monetizes what users explicitly allow.
+
+  Full spec: vocare-project-specification.md (module plan M0-M11). Prime directives
+  and absolute rules: CLAUDE.md — read both before proposing or applying a change.
+  Sensitive areas (auth, payments, crisis-safety, anonymization) require the two-instance
+  chat/cli review process per CLAUDE.md's Development Process note.
+
+# Per-artifact rules (optional)
+# Add custom rules for specific artifacts.
+# Example:
+#   rules:
+#     proposal:
+#       - Keep proposals under 500 words
+#       - Always include a "Non-goals" section
+#     tasks:
+#       - Break tasks into chunks of max 2 hours

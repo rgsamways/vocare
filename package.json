@@ -1,0 +1,23 @@
+{
+  "name": "vocare",
+  "private": true,
+  "version": "0.0.0",
+  "workspaces": [
+    "shared",
+    "backend",
+    "web",
+    "mobile"
+  ],
+  "engines": {
+    "node": ">=24.0.0 <25.0.0"
+  },
+  "scripts": {
+    "postinstall": "npm run build -w @vocare/shared",
+    "lint": "npm run lint --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present",
+    "build:backend": "npm run build -w @vocare/shared && npm run build -w @vocare/backend",
+    "start:backend": "node backend/dist/index.js"
+  }
+}
