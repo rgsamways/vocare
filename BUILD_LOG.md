@@ -116,4 +116,12 @@ M0's deliverable — "empty-but-wired repo, deployable hello world on Railway + 
 
 ---
 
+## Entry 3.5 — vocare.ca Goes Live
+
+`vocare.ca` was purchased the same day M0 shipped. DNS is managed at the registrar, **Web Hosting Canada (WHC.ca)** — confirmed by checking, not assumed. Pointed the apex at Vercel (edited WHC's existing default A record to Vercel's current target IP; declined Vercel's default apex→`www` redirect to keep the bare domain canonical, matching the day's brand direction). Hit a transient `Failed to Generate Cert` error that turned out to be ordinary DNS propagation lag, confirmed directly via `nslookup` against Google/Cloudflare rather than assumed — resolved itself once those resolvers caught up. `vocare.ca` now serves the live M0 app, verified by actually loading it.
+
+Not yet done, not urgent: `api.vocare.ca` (Railway) and a Resend sending subdomain — neither blocks anything until M1 needs real email. Full account of the DNS detective work: `journal/2026-07-21.md`, Session 3.
+
+---
+
 *Continue adding entries at real milestones — a module completed, a real decision made, a mistake caught and fixed. Not every commit; the moments worth explaining to someone looking at this afterward.*
