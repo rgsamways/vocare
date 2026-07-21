@@ -95,7 +95,24 @@ Checked the machine before installing anything: Docker, `scc`, `sreditor`, `jscp
 
 ## Entry 3 — M0 Scaffold
 
-_Fill in once M0 actually begins, with explicit go-ahead._
+Robin gave explicit go-ahead in a fresh session (per rule 8), plus the answer to the one remaining open call M0 needed: **Vercel** over Cloudflare Pages for web hosting.
+
+**Monorepo:** npm workspaces — `shared`, `backend`, `web`, `mobile` (in that dependency order, which matters — see the CI note below). Backend is Fastify, web is Vite/React scaffolded via `npm create vite`, mobile is Expo scaffolded via `create-expo-app`. Both backend and web import `APP_NAME` from `@vocare/shared` and have a real (non-placeholder) Vitest test — not just wiring, actually proven end-to-end with a clean-checkout test before trusting it.
+
+**A real build-order bug, caught before it shipped:** `@vocare/shared`'s `types`/`main` point at its compiled `dist/`, which doesn't exist right after a fresh `npm ci` — so typecheck on anything depending on it failed on a clean checkout, which is exactly what CI does on every run. Fixed with a root `postinstall` that builds `shared` first, and made the Railway build command build `shared` explicitly too rather than lean on the hook firing at the right moment. Caught by actually wiping `node_modules`/`dist` and re-running the full pipeline locally before trusting CI would pass — not by assuming it would.
+
+**OpenSpec init surfaced a real drift:** the spec's M0 task named a `project.md` anchor doc, but the installed CLI (1.6.0, confirmed real per Section 9's verification pass) has moved that mechanism to `openspec/config.yaml`'s `context` field instead — no file named `project.md` is read by any of the generated tooling. Wrote Section 1's product thesis into that field rather than creating a file nothing would actually consult.
+
+**CI:** GitHub Actions running lint (`oxlint`) + typecheck + Vitest + build across workspaces on push, per the spec's "Vitest for web/backend, Jest deferred to M3" note. Verified locally against a full `node_modules`/`dist` wipe before trusting it, not just committed and hoped.
+
+**Deployed, both platforms verified live:**
+- **Railway** — backend at a generated `*.up.railway.app` domain, `/health` returns `{"status":"ok","app":"Vocare"}`. Deployed from the repo root (not a subdirectory) with a root `railway.json` and explicit `build:backend`/`start:backend` scripts, after verifying (via Railway's own docs, not assumption) that a "shared monorepo" service needs root-context build/start commands rather than an isolated Root Directory setting.
+- **Vercel** — web app live, auto-connected to the GitHub repo (future pushes to `main` will now auto-deploy). First attempt deploying scoped to `web/` failed for a real, instructive reason: Vercel's CLI (without a linked project's Root Directory setting) only uploads the specified subdirectory, so `@vocare/shared` wasn't visible and `npm install` failed. Fixed the same way as Railway: deploy from repo root with a root `vercel.json` pointing `outputDirectory` at `web/dist`.
+- Also fixed in passing: an `EBADENGINE` warning from `package.json`'s `engines.node` being pinned to the exact `24.18.0` patch, which Vercel's build image didn't match — loosened to `>=24.0.0 <25.0.0` (still the right major LTS line, just not over-pinned to a patch version this project doesn't actually depend on).
+
+**scc baseline** captured in `docs/metrics/scc-m0-baseline.txt` for comparison at future module milestones, per the spec's own metrics row.
+
+M0's deliverable — "empty-but-wired repo, deployable hello world on Railway + Vercel, with the web/mobile architecture question actually resolved" — is done. Next: M1 (auth & entitlement), the first module needing the two-instance chat/cli review process, since it's rule-5 sensitive.
 
 ---
 

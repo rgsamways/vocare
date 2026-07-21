@@ -1,12 +1,14 @@
 # HANDOFF — Phone → Laptop, Vocare Project
 
+**Superseded as the "what's current" doc as of M0 (2026-07-21) — see `BUILD_LOG.md` and `journal/` for ongoing status.** This file's job was bridging the initial phone-planning session to the laptop; that transition is long done. Kept here for its "what/why" framing below, which still holds. Don't trust the "Where things stand" section below for current state — it's a snapshot of the pre-code moment.
+
 Read this first if you're picking up this project in a new session (Claude Code, VSCode, or otherwise) and don't have the original phone conversation in context.
 
 ## What Vocare is
 
-An AI-conversational career/interview practice app. The pitch: AI interview screens (like the one that inspired this — Robin failed a technical AI screen with a company called "Zara" the same day this project started) reward syntax trivia over real judgment. Vocare is the opposite: people just talk — what they've built, what they're doing, what they want next — no quiz, no real-time scoring. Feedback and any data use happen only *after* the conversation. $10 lifetime fee, not a subscription. An optional, strictly consent-gated data layer sits behind it (three tiers — see the full spec).
+An AI-conversational career/interview practice app. The pitch: AI interview screens (like the one that inspired this — Robin failed a technical AI screen with a company called "Zara" the same day this project started) reward syntax trivia over real judgment. Vocare is the opposite: people just talk — what they've built, what they're doing, what they want next — no quiz, no real-time scoring. Feedback and any data use happen only *after* the conversation. **$29 lifetime fee** (revised 2026-07-21 from an original $10 — see the spec's Section 1), not a subscription. An optional, strictly consent-gated data layer sits behind it (three tiers — see the full spec).
 
-## Where things stand right now
+## Where things stood at the phone→laptop handoff (now historical)
 
 - **Name:** Vocare (was called "Reps" during planning — see `BUILD_LOG.md` Entry 0.5 for why it changed). `vocare.ca` confirmed available and being purchased.
 - **No code exists yet.** No repo, no scaffold. Everything so far is planning documents.
