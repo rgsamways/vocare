@@ -76,8 +76,12 @@ export function AccountPage() {
         <span>{statusText}</span>
       </div>
 
+      <button className="btn" style={{ marginTop: 20 }} onClick={() => navigate("/practice")}>
+        Start a practice session
+      </button>
+
       {account.entitlementStatus === "unpaid" && (
-        <button className="btn" style={{ marginTop: 20 }} onClick={() => navigate("/paywall")}>
+        <button className="btn secondary" style={{ marginTop: 10 }} onClick={() => navigate("/paywall")}>
           Unlock unlimited — $29
         </button>
       )}

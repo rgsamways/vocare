@@ -15,6 +15,13 @@
       "when": 1784683184625,
       "tag": "0001_lying_zarda",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784731849789,
+      "tag": "0002_rare_epoch",
+      "breakpoints": true
     }
   ]
 }

@@ -18,8 +18,18 @@ async function seedFullUser(user: { id: string; email: string }) {
     paidAt: new Date(),
   });
   await db.insert(schema.sessions).values([
-    { userId: user.id, status: "complete" },
-    { userId: user.id, status: "start" },
+    {
+      userId: user.id,
+      status: "complete",
+      personaAgeRange: "20s-30s",
+      personaGenderPresentation: "neutral",
+    },
+    {
+      userId: user.id,
+      status: "start",
+      personaAgeRange: "20s-30s",
+      personaGenderPresentation: "neutral",
+    },
   ]);
   await db.insert(schema.stripePayments).values({
     paymentIntentId: `pi_${user.id}`,

@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.112.5",
     "@fastify/cors": "^11.3.0",
     "@vocare/shared": "*",
     "better-auth": "^1.6.23",

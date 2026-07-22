@@ -1,0 +1,61 @@
+## Context
+
+M1 shipped auth, entitlement, and a `sessions` table with `status`, `crisis_flagged`, and a nullable `anchor_id` placeholder FK — but nothing populates `transcript_turns` (spec-defined, not yet created), nothing calls the Anthropic API, and no `anchors` table exists at all (M6 owns anchor management, but M2 is the first module that needs to *read* one). This change is the first LLM integration in the codebase and the first rule-5-sensitive module since M1, so it follows the same two-instance `chat`/`cli` process CLAUDE.md's 2026-07-21 update names for crisis-safety work.
+
+The mockup (`mockups/interface-v1.html`) is settled for the conversation screen's core layout (bubbles, composer, anchor badge, no-score strip) and the safety-net card — both built and reviewed before this change existed. Topic-seed chips, the upfront time expectation, the redirect control, and persona selection were added to the spec on 2026-07-22 (commits `1e1e622`, `9597880`), *after* the mockup was last touched, and only as spec prose — they have no corresponding mockup screen. This change treats the mockup as authoritative for what it does show, and follows its existing visual language (the chip-row/chip CSS classes already used on the feedback screen) for the new elements it doesn't.
+
+## Goals / Non-Goals
+
+**Goals:**
+- A user can have a complete, open-ended text conversation — start to finish — that adapts to vague answers without becoming a quiz, and never surfaces a score or grade mid-session.
+- The crisis-safety net catches explicit self-harm/acute-crisis language, live, per turn, and is narrow enough that ordinary career-stress venting never trips it — correctness here matters more than in almost any other part of the product, per CLAUDE.md rule 5.
+- Anchor-aware steering (when a session links to an anchor) works end-to-end even though M6's anchor-management UI doesn't exist yet — via a minimal `anchors` table this change introduces.
+- System-prompt caching is designed in from the start (spec Section 5's cost note), not retrofitted.
+
+**Non-Goals:**
+- Not building M6's anchor CRUD/UI, `anchor_revisions`, or archive management — this change reads `anchors` rows and lets a user create the bare minimum needed to exercise anchor-linking, nothing more.
+- Not building M3's voice capture — text-only input/output.
+- Not finalizing crisis-detection thresholds or resource copy — implemented as configurable/placeholder values pending professional review, same pattern as M1's age-gate and velocity-cap placeholders.
+- Not building AI text-to-speech, cross-session callbacks, profanity detection, or feedback charts — all explicitly parked (spec Section 24).
+- Not building M4's mining pipeline — `job_description_text`/`company` are never read here at all.
+
+## Decisions
+
+**Crisis check: a second, cheap, synchronous Haiku call per user turn, not a keyword blocklist and not a single combined prompt with the conversational reply.** A keyword list ("kill," "hopeless," etc.) would produce constant false positives on ordinary hyperbolic career language ("this job is killing me") — exactly the false-positive risk the spec calls out as unacceptable. Folding the check into the same LLM call that generates the conversational reply is tempting for cost, but couples two very different failure modes: a bug or prompt-injection edge case that corrupts the conversational output would also corrupt the safety check in the same call. A dedicated, narrowly-scoped classification call (structured output: `{crisis_detected: boolean}`, few-shot examples of what *doesn't* count) is small, fast (input tokens only, tiny output), and independently testable. Runs before the conversational reply is generated, in the same request-response cycle as the user's turn — not deferred to a queue — so the safety card can appear inline, immediately, per the spec's decoupling-from-M4 requirement.
+
+**Crisis check runs on every user turn, unconditionally — cannot be disabled by the redirect control or anything else.** The redirect control changes what the *conversation* talks about next; it has no code path that touches the safety check, by construction (the check runs against the user's latest turn regardless of what happens after). This is the direct implementation of the spec's hard rule that redirect agency must never suppress a triggered safety response.
+
+**Anchor scope for this change: a minimal `anchors` table, created via a single bare-bones "add anchor" form reachable from session start, not M6's full management surface.** Considered deferring anchor-linking entirely until M6 lands — rejected because anchor-aware steering is explicitly core M2 scope in the spec, and shipping M2 without any way to create an anchor would make that scope untestable end-to-end (only exercisable by seeding rows directly, same gap M1 would have had for Stripe checkout if it skipped the paywall UI). The minimal form captures `label`/`target_role`/`target_industry`/`job_description_text`/`company` — the full column set — so M6 doesn't need a schema migration later, only a richer UI (edit, archive, revision history) on top of data M2 already collects correctly.
+
+**Persona properties: chosen server-side at session start, stored on the `sessions` row, injected into the system prompt once — not re-rolled mid-conversation.** A persona that shifted partway through a conversation would read as broken, not varied. Auto-vary mode picks pseudo-uniformly from a small fixed set of {age-range, gender-presentation} combinations at session-start time (using the session's own `id` as a variation seed, since `Math.random()`/`Date.now()`-style nondeterminism has no bearing here — this is ordinary app code, not an OpenSpec workflow script). User-selected mode stores the chosen combination the same way. Both modes go through the identical system-prompt-framing code path; "auto" is just "the system chose the values instead of the user."
+
+**System prompt caching: Anthropic's prompt-caching `cache_control` breakpoint after the static system-prompt block, persona framing included in the cached portion.** The spec calls this out as worth designing in from M2, not retrofitting. The system prompt (question-arc instructions, safety-check-adjacent conversational guardrails, persona framing) is fixed for the life of a session once persona is chosen at session start — a natural cache boundary. The rolling conversation history (each turn appended) is not cached, since it's different on every call by definition; this matches the spec's own caveat that cache-hit rates pay off less on content that changes every turn, so only the genuinely static part is cached.
+
+**Adaptive follow-up: a single system-prompt instruction set, not a separate vagueness-classifier call.** Unlike the crisis check (where a dedicated call is justified by the harm-severity asymmetry), "is this answer vague, should I probe deeper" is exactly the kind of judgment a conversational LLM is already doing turn-to-turn as part of generating a good reply — adding a second call here would double conversational latency and cost for a lower-stakes judgment call than the safety check. The main conversational system prompt includes explicit instructions and few-shot examples for recognizing vague answers and probing for one concrete detail, without escalating into a multi-question technical quiz.
+
+**Redirect control: a client-visible affordance that injects a system-level instruction into the next model turn, not a session reset.** "Let's talk about something else" should feel like steering the same conversation, not starting over — the transcript keeps accumulating in the same session, but the next assistant turn is generated with an added instruction to pivot topics. This keeps `transcript_turns` a complete, honest record of what was actually said (including the redirect itself, stored as a user-style control-turn) rather than silently rewriting history.
+
+**Topic-seed chips and time-expectation copy: returned by the session-start endpoint as data, not hardcoded client strings.** A small fixed list of broad chip prompts (backend constant, anchor-aware: if `target_role`/`target_industry` are present, a subset or lightly-reworded version is chosen/returned) plus the qualitative time-expectation string. Keeping these server-side (even though they're static for now) means a future anchor-aware chip-personalization pass or A/B copy change doesn't require a client release.
+
+## Risks / Trade-offs
+
+- **A dedicated crisis-check call can still miss or false-positive.** → Mitigation: thresholds and resource content are explicit placeholders (design and tasks both flag this), reviewed by a professional before this ships to real users; few-shot examples in the classification prompt are tuned toward the spec's explicit narrow intent (explicit self-harm/acute-crisis language only) rather than broad distress.
+- **Two LLM calls per user turn (crisis check + conversational reply) roughly doubles per-turn cost versus a single-call design.** → Mitigation: the crisis check's input is small (just the latest turn plus a compact instruction set, not the full conversation) and its output is a few tokens of structured data; measure actual per-session cost against the spec's $0.05 ceiling once this ships, and only merge the calls later if real cost data forces it — not preemptively, given the coupling risk noted above.
+- **Minimal anchors table shipped ahead of M6's real management UI could get used in production with no way to edit or archive an anchor.** → Mitigation: explicitly scoped as bare-bones (create only) in this change; M6 is next in the build sequence per the spec's milestone table, so the gap is short-lived by design, not an indefinite half-feature.
+- **Persona variety reading as caricature is a craft risk, not a technical one.** → Mitigation: the persona framing is reviewed as prose (few-shot tone examples per persona) before shipping, same "craft caution, not a build blocker" framing the spec itself uses; no automated test can catch a caricature, so this gets a manual read-through as part of verification.
+- **Prompt-injection via user turns aimed at the crisis-check prompt itself** (e.g., a user trying to manipulate the classifier). → Mitigation: the classifier only ever emits a boolean-shaped structured output consumed by application code, never free text rendered back to the user, which bounds what a successful injection could actually achieve; out of scope to fully solve here, flagged for awareness.
+
+## Migration Plan
+
+- New tables via `drizzle-kit`: `anchors` (minimal schema per Decisions above) and `transcript_turns` (per spec Section 3's data model: `id`, `session_id` FK, `speaker` enum `user|assistant`, `content`, `ts`).
+- `sessions.anchor_id` becomes an enforceable FK now that `anchors` exists (currently just a bare nullable UUID column with no reference constraint).
+- Env vars to add (Railway + local `.env`): `ANTHROPIC_API_KEY`.
+- New backend config constants (`config.ts`, same placeholder pattern as `FAIR_USE_CAP`): crisis-check model/prompt version, persona combination list, topic-seed chip list.
+- No data to backfill — first module to write to these tables.
+- Rollback: no production traffic depends on this yet (M2 is pre-launch, per the spec's Alpha milestone gating on M0-M2 together); rollback is "don't deploy," same as M1's precedent.
+
+## Open Questions
+
+- **Exact crisis-detection few-shot examples and resource content per country** — placeholder set implemented (a handful of countries from `users.country`'s known values, e.g. Canada/US/UK, with a generic fallback), flagged for the same professional review the spec requires before real launch.
+- **Persona combination list (which age-ranges, which gender-presentation labels)** — a small starter set is implemented and reviewed for tone as part of this change's verification, but the exact taxonomy is a craft/product judgment call more than an engineering one; revisit if early usage surfaces a persona that reads oddly.
+- **Topic-seed chip copy** — a starter set of broad prompts is implemented per the spec's own examples ("a recent decision," "something you're proud of," "a hard tradeoff"); not user-tested yet, may need iteration once there's real usage.

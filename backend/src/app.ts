@@ -7,6 +7,7 @@ import { stripeWebhookPlugin } from "./billing/webhook-plugin.js";
 import { checkoutRoutes } from "./billing/checkout.js";
 import { entitlementRoutes } from "./routes/entitlement.js";
 import { accountRoutes } from "./routes/account.js";
+import { conversationRoutes } from "./routes/conversation.js";
 
 export function buildApp() {
   const fastify = Fastify({ logger: true });
@@ -27,6 +28,7 @@ export function buildApp() {
   fastify.register(checkoutRoutes);
   fastify.register(entitlementRoutes);
   fastify.register(accountRoutes);
+  fastify.register(conversationRoutes);
 
   return fastify;
 }

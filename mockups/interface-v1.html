@@ -43,11 +43,11 @@
     flex-direction: column;
   }
   header.appbar {
-    padding: 18px 20px 14px;
+    padding: 18px 20px 16px;
     border-bottom: 1px solid var(--line);
   }
-  .brand-lockup { display: flex; align-items: baseline; gap: 4px; }
-  .brand-lockup svg { position: relative; top: -2px; }
+  .brand-lockup { display: flex; align-items: center; gap: 4px; }
+  .brand-lockup svg { position: relative; top: 2px; }
   .wordmark {
     font-family: 'Fraunces', serif;
     font-style: italic;
@@ -95,7 +95,7 @@
 
   .field { margin-bottom: 16px; }
   .field label { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--ink-soft); margin-bottom: 6px; }
-  .field input[type="email"], .field select {
+  .field input[type="email"], .field input[type="date"], .field select {
     width: 100%; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
     font-size: 14px; background: #fbfaf7;
   }
@@ -208,11 +208,11 @@
 <div class="shell">
   <header class="appbar">
     <div class="brand-lockup">
-      <svg width="19" height="14" viewBox="0 0 46 33" fill="none">
-        <path d="M6 30C6 30 14 8 23 8C32 8 40 30 40 30" stroke="#3f5d54" stroke-width="4" stroke-linecap="round"/>
-        <circle cx="6" cy="30" r="2" fill="#3f5d54"/>
-        <circle cx="40" cy="30" r="2" fill="#3f5d54"/>
-        <path d="M13 24C13 24 18 13 23 13C28 13 33 24 33 24" stroke="#3f5d54" stroke-width="3.4" stroke-linecap="round" opacity="0.6"/>
+      <svg width="10.5" height="13.5" viewBox="6 -2 34 42" fill="none">
+        <path d="M12 2C12 2 34 10 34 19C34 28 12 36 12 36" stroke="#3f5d54" stroke-width="4" stroke-linecap="round"/>
+        <circle cx="12" cy="2" r="2" fill="#3f5d54"/>
+        <circle cx="12" cy="36" r="2" fill="#3f5d54"/>
+        <path d="M18 9C18 9 29 14 29 19C29 24 18 29 18 29" stroke="#3f5d54" stroke-width="3.4" stroke-linecap="round" opacity="0.6"/>
       </svg>
       <span class="wordmark">vocare</span>
     </div>
@@ -241,6 +241,11 @@
       </div>
 
       <div class="field">
+        <label><i data-lucide="calendar" class="lucide-icon sm"></i>Date of birth</label>
+        <input type="date" />
+      </div>
+
+      <div class="field">
         <label><i data-lucide="globe" class="lucide-icon sm"></i>Country</label>
         <select>
           <option>Canada</option>
@@ -253,7 +258,7 @@
 
       <div class="checkline">
         <input type="checkbox" checked style="margin-top:2px" />
-        <span>I'm 16 or older. Vocare uses an AI system to hold the conversation — you'll always know when you're talking to it, not a person.</span>
+        <span>Vocare uses an AI system to hold the conversation — you'll always know when you're talking to it, not a person.</span>
       </div>
 
       <button class="btn">Send my sign-in link</button>
