@@ -15,6 +15,31 @@
   --safe-ink: #33417a;
 }
 
+/* Same warm/sage character as light mode, inverted — not a generic slate/blue
+   dark theme. --panel stays a shade lighter than --bg, same "card pops off
+   the backdrop" relationship light mode has with white-on-cream. */
+:root[data-theme="dark"] {
+  --bg: #171511;
+  --panel: #211f19;
+  --ink: #ece7dd;
+  --ink-soft: #a8a196;
+  --accent: #5f8f7b;
+  --accent-soft: #24332e;
+  --line: #38352c;
+  --warn-bg: #3a2e1c;
+  --warn-ink: #e0b382;
+  --danger: #d97a7a;
+  --safe-bg: #1e2233;
+  --safe-ink: #a8b8e8;
+}
+
+body,
+#root,
+header.appbar,
+.tabbar {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -22,6 +47,28 @@
 header.appbar {
   padding: 18px 20px 16px;
   border-bottom: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.theme-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--line);
+  background: transparent;
+  color: var(--ink-soft);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.theme-toggle:hover {
+  color: var(--accent);
+  border-color: var(--accent);
 }
 
 .brand-lockup {
