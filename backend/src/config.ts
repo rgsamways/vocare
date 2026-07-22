@@ -60,22 +60,22 @@ export const GENERIC_TOPIC_SEED_CHIPS: TopicSeedChip[] = [
   {
     id: "recent-decision",
     label: "A recent decision",
-    prompt: "Tell me about a recent decision you had to make.",
+    prompt: "I want to talk about a recent decision I had to make.",
   },
   {
     id: "proud-moment",
     label: "Something you're proud of",
-    prompt: "Tell me about something you're proud of.",
+    prompt: "I want to talk about something I'm proud of.",
   },
   {
     id: "hard-tradeoff",
     label: "A hard tradeoff",
-    prompt: "Tell me about a hard tradeoff you've had to navigate.",
+    prompt: "I want to talk about a hard tradeoff I've had to navigate.",
   },
   {
     id: "what-drains-you",
     label: "What drains you",
-    prompt: "Tell me about something that's been draining your energy lately.",
+    prompt: "I want to talk about something that's been draining my energy lately.",
   },
 ];
 
@@ -95,22 +95,22 @@ export function getTopicSeedChips(anchor?: {
     {
       id: "recent-decision",
       label: "A recent decision",
-      prompt: `Tell me about a recent decision you had to make related to ${focus}.`,
+      prompt: `I want to talk about a recent decision I had to make related to ${focus}.`,
     },
     {
       id: "proud-moment",
       label: "Something you're proud of",
-      prompt: `Tell me about something you're proud of in ${focus}.`,
+      prompt: `I want to talk about something I'm proud of in ${focus}.`,
     },
     {
       id: "hard-tradeoff",
       label: "A hard tradeoff",
-      prompt: "Tell me about a hard tradeoff you've had to navigate.",
+      prompt: "I want to talk about a hard tradeoff I've had to navigate.",
     },
     {
       id: "what-drains-you",
       label: "What drains you",
-      prompt: "Tell me about something that's been draining your energy lately.",
+      prompt: "I want to talk about something that's been draining my energy lately.",
     },
   ];
 }
