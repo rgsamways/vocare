@@ -3,8 +3,8 @@ import { describe, expect, it } from 'vitest';
 import App from './App';
 
 describe('App', () => {
-  it('renders the app name', () => {
+  it('renders the sign-up screen at the root path', () => {
     render(<App />);
-    expect(screen.getByText('Vocare')).toBeInTheDocument();
+    expect(screen.getByText('Practice out loud.')).toBeInTheDocument();
   });
 });

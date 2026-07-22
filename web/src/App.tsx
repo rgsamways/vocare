@@ -1,11 +1,17 @@
-import { APP_NAME } from "@vocare/shared";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { SignUpPage } from "./pages/SignUpPage";
+import { AccountPage } from "./pages/AccountPage";
+import { PaywallPage } from "./pages/PaywallPage";
 
 function App() {
   return (
-    <main>
-      <h1>{APP_NAME}</h1>
-      <p>M0 scaffold — hello world.</p>
-    </main>
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<SignUpPage />} />
+        <Route path="/account" element={<AccountPage />} />
+        <Route path="/paywall" element={<PaywallPage />} />
+      </Routes>
+    </BrowserRouter>
   );
 }
 
