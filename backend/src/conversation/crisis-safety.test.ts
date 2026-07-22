@@ -60,8 +60,45 @@ describe("getCrisisResource", () => {
     expect(getCrisisResource("United Kingdom")).toBe(CRISIS_RESOURCES["United Kingdom"]);
   });
 
+  // Germany used to be the example here, back when it fell through to
+  // generic — it now has a real entry (see config.ts), so it moved to the
+  // "resolves the 2026-07-22 expansion" test below instead. Italy is a
+  // deliberate, researched exclusion (no single clean national 24/7 line
+  // found), not an oversight — see config.ts's comment — which makes it a
+  // more honest example of "genuinely unmapped" than an arbitrary country.
   it("falls back to the generic resource for an unmapped country", () => {
-    expect(getCrisisResource("Germany")).toBe(GENERIC_CRISIS_RESOURCE);
+    expect(getCrisisResource("Italy")).toBe(GENERIC_CRISIS_RESOURCE);
+  });
+
+  // Spot-checks the 2026-07-22 research-backed expansion (Canada's rename
+  // plus 28 newly added countries) resolves real entries, not just that the
+  // three original countries still work.
+  it("resolves the 2026-07-22 expansion to real, non-generic resources", () => {
+    expect(getCrisisResource("Canada")).toBe(CRISIS_RESOURCES.Canada);
+    expect(CRISIS_RESOURCES.Canada.name).toBe("988: Suicide Crisis Helpline");
+    for (const country of ["Germany", "Japan", "Brazil", "Mexico", "South Africa", "India"]) {
+      expect(getCrisisResource(country)).not.toBe(GENERIC_CRISIS_RESOURCE);
+      expect(getCrisisResource(country)).toBe(CRISIS_RESOURCES[country]);
+    }
+  });
+
+  // The web app's country dropdown (web/src/lib/detect-country.ts) is
+  // supposed to list only countries with a real entry here — that promise
+  // has no compile-time enforcement across the two workspaces, so this
+  // hardcodes the same list as a regression check. If this test fails
+  // after editing either file, the two are out of sync — update both.
+  it("backs every country the sign-up dropdown offers with a real resource", () => {
+    const DROPDOWN_COUNTRIES = [
+      "Australia", "Austria", "Brazil", "Canada", "Czechia", "Finland", "France",
+      "Germany", "Hungary", "Iceland", "India", "Ireland", "Japan", "Latvia",
+      "Lithuania", "Mexico", "Netherlands", "New Zealand", "Norway", "Poland",
+      "Portugal", "Singapore", "Slovakia", "Slovenia", "South Africa", "South Korea",
+      "Spain", "Sweden", "Switzerland", "United Kingdom", "United States",
+    ];
+    for (const country of DROPDOWN_COUNTRIES) {
+      expect(CRISIS_RESOURCES[country], `missing CRISIS_RESOURCES entry for ${country}`).toBeDefined();
+    }
+    expect(Object.keys(CRISIS_RESOURCES).length).toBe(DROPDOWN_COUNTRIES.length);
   });
 
   it("falls back to the generic resource for a null/missing country", () => {

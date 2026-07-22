@@ -130,14 +130,28 @@ export interface CrisisResource {
 }
 
 /**
- * Starter set keyed by the exact country strings web/src/lib/detect-country.ts
- * already stores on the user record (full display names, not ISO codes).
- * Placeholder content — pending professional review before real launch.
+ * Keyed by the exact country strings web/src/lib/detect-country.ts's
+ * COUNTRIES array already stores on the user record (full display names,
+ * not ISO codes) — that array is meant to list *only* countries with a real
+ * entry here (see its own comment). Kept in sync by hand; there is no
+ * compile-time check tying the two lists together (see
+ * crisis-safety.test.ts's cross-check test for the regression coverage this
+ * gets instead).
+ *
+ * Researched 2026-07-22 against primary/official sources (government health
+ * ministries, the org's own site) via live web search, not recalled from
+ * training data — see FIXLIST.md and vocare-project-specification.md
+ * Section 24 for the research process and its limits. Countries
+ * investigated but found to have no single, clean, national 24/7 line
+ * (e.g. Italy, Turkey, Saudi Arabia) are deliberately excluded rather than
+ * given an approximate or partial-coverage number — this still needs real
+ * professional review before launch, this pass is a large improvement over
+ * the prior 3-country map, not a substitute for that review.
  */
 export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
   Canada: {
-    name: "Talk Suicide Canada",
-    contact: "Call or text 9-8-8",
+    name: "988: Suicide Crisis Helpline",
+    contact: "Call or text 988",
     description: "Free, 24/7 support for anyone in Canada in crisis or thinking about suicide.",
     href: "tel:988",
   },
@@ -152,6 +166,174 @@ export const CRISIS_RESOURCES: Record<string, CrisisResource> = {
     contact: "Call 116 123",
     description: "Free, 24/7 confidential support for anyone in the UK struggling to cope.",
     href: "tel:116123",
+  },
+  Australia: {
+    name: "Lifeline Australia",
+    contact: "Call 13 11 14 or text 0477 13 11 14",
+    description: "Free, 24/7 support for anyone in Australia in crisis or thinking about suicide.",
+    href: "tel:131114",
+  },
+  "New Zealand": {
+    name: "1737: Need to Talk?",
+    contact: "Call or text 1737",
+    description: "Free, 24/7 support for anyone in New Zealand in crisis or thinking about suicide.",
+    href: "tel:1737",
+  },
+  Ireland: {
+    name: "Pieta",
+    contact: "Call 1800 247 247 or text HELP to 51444",
+    description: "Free, 24/7 support for anyone in Ireland in crisis or thinking about suicide.",
+    href: "tel:1800247247",
+  },
+  India: {
+    name: "Tele-MANAS",
+    contact: "Call 14416",
+    description: "Free, 24/7 support for anyone in India in crisis, in 20+ languages.",
+    href: "tel:14416",
+  },
+  Germany: {
+    name: "TelefonSeelsorge",
+    contact: "Call 0800 111 0111",
+    description: "Free, 24/7 confidential support for anyone in Germany in crisis.",
+    href: "tel:08001110111",
+  },
+  France: {
+    name: "3114",
+    contact: "Call 3114",
+    description: "Free, 24/7 national suicide prevention line for anyone in France.",
+    href: "tel:3114",
+  },
+  Netherlands: {
+    name: "113 Zelfmoordpreventie",
+    contact: "Call or chat 113",
+    description: "Free, 24/7 support for anyone in the Netherlands in crisis or thinking about suicide.",
+    href: "tel:113",
+  },
+  Sweden: {
+    name: "Mind Självmordslinjen",
+    contact: "Call or chat 90101",
+    description: "Free, 24/7 support for anyone in Sweden in crisis or thinking about suicide.",
+    href: "tel:90101",
+  },
+  Singapore: {
+    name: "Samaritans of Singapore (SOS)",
+    contact: "Call 1-767",
+    description: "Free, 24/7 support for anyone in Singapore in crisis or thinking about suicide.",
+    href: "tel:1767",
+  },
+  Spain: {
+    name: "Línea 024",
+    contact: "Call 024",
+    description: "Free, 24/7 national crisis line for anyone in Spain, including sign-language video support.",
+    href: "tel:024",
+  },
+  Portugal: {
+    name: "Linha Nacional de Prevenção do Suicídio",
+    contact: "Call 1411",
+    description: "Free, 24/7 national suicide prevention line for anyone in Portugal.",
+    href: "tel:1411",
+  },
+  Austria: {
+    name: "TelefonSeelsorge",
+    contact: "Call 142",
+    description: "Free, 24/7 confidential support for anyone in Austria in crisis.",
+    href: "tel:142",
+  },
+  Switzerland: {
+    name: "Die Dargebotene Hand",
+    contact: "Call 143",
+    description: "Free, 24/7 confidential support for anyone in Switzerland in crisis.",
+    href: "tel:143",
+  },
+  Norway: {
+    name: "Mental Helse Hjelpetelefonen",
+    contact: "Call 116 123",
+    description: "Free, 24/7 confidential support for anyone in Norway in crisis.",
+    href: "tel:116123",
+  },
+  Finland: {
+    name: "MIELI Kriisipuhelin",
+    contact: "Call +358 9 2525 0111",
+    description: "Free, 24/7 crisis line for anyone in Finland.",
+    href: "tel:+358925250111",
+  },
+  Iceland: {
+    name: "Hjálparsími Rauða krossins",
+    contact: "Call 1717",
+    description: "Free, 24/7 support for anyone in Iceland in crisis.",
+    href: "tel:1717",
+  },
+  Poland: {
+    name: "116 123",
+    contact: "Call 116 123",
+    description: "Free, 24/7 support for anyone in Poland in crisis.",
+    href: "tel:116123",
+  },
+  Czechia: {
+    name: "Linka první psychické pomoci",
+    contact: "Call 116 123",
+    description: "Free, 24/7 support for anyone in Czechia in crisis.",
+    href: "tel:116123",
+  },
+  Slovakia: {
+    name: "Linka dôvery Nezábudka",
+    contact: "Call 0800 800 566",
+    description: "Free, 24/7 support for anyone in Slovakia in crisis.",
+    href: "tel:0800800566",
+  },
+  Hungary: {
+    name: "116-123",
+    contact: "Call 116 123",
+    description: "Free, 24/7 support for anyone in Hungary in crisis.",
+    href: "tel:116123",
+  },
+  Slovenia: {
+    name: "Zaupni telefon Samarijan",
+    contact: "Call 116 123",
+    description: "Free, 24/7 support for anyone in Slovenia in crisis.",
+    href: "tel:116123",
+  },
+  Latvia: {
+    name: "Skalbes",
+    contact: "Call 116 123",
+    description: "Free, 24/7 support for anyone in Latvia in crisis.",
+    href: "tel:116123",
+  },
+  Lithuania: {
+    name: "Vilties linija",
+    contact: "Call 116 123",
+    description: "Free, 24/7 support for anyone in Lithuania in crisis.",
+    href: "tel:116123",
+  },
+  Mexico: {
+    name: "Línea de la Vida",
+    contact: "Call 800 911 2000",
+    description: "Free, 24/7 national crisis line for anyone in Mexico.",
+    href: "tel:8009112000",
+  },
+  Brazil: {
+    name: "CVV — Centro de Valorização da Vida",
+    contact: "Call or chat 188",
+    description: "Free, 24/7 support for anyone in Brazil in crisis or thinking about suicide.",
+    href: "tel:188",
+  },
+  Japan: {
+    name: "Yorisoi Hotline",
+    contact: "Call 0120-279-338",
+    description: "Free, 24/7 support for anyone in Japan in crisis.",
+    href: "tel:0120279338",
+  },
+  "South Korea": {
+    name: "Suicide Prevention Counseling Hotline",
+    contact: "Call 109",
+    description: "Free, 24/7 support for anyone in South Korea in crisis.",
+    href: "tel:109",
+  },
+  "South Africa": {
+    name: "SADAG Suicide Crisis Helpline",
+    contact: "Call 0800 567 567",
+    description: "Free, 24/7 support for anyone in South Africa in crisis.",
+    href: "tel:0800567567",
   },
 };
 

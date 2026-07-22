@@ -1,16 +1,41 @@
+// Only countries with a real, verified entry in backend/src/config.ts's
+// CRISIS_RESOURCES belong here — this list is what tells a user "we have a
+// specific crisis resource for you," and offering a country we can't
+// actually back with one is the exact liability gap this list exists to
+// avoid. "Other" always falls through to the generic directory fallback.
+// Researched 2026-07-22 — see that file's own comment for sourcing/limits.
 const COUNTRIES = [
-  "Canada",
-  "United States",
-  "United Kingdom",
   "Australia",
-  "New Zealand",
-  "Ireland",
-  "India",
-  "Germany",
+  "Austria",
+  "Brazil",
+  "Canada",
+  "Czechia",
+  "Finland",
   "France",
+  "Germany",
+  "Hungary",
+  "Iceland",
+  "India",
+  "Ireland",
+  "Japan",
+  "Latvia",
+  "Lithuania",
+  "Mexico",
   "Netherlands",
-  "Sweden",
+  "New Zealand",
+  "Norway",
+  "Poland",
+  "Portugal",
   "Singapore",
+  "Slovakia",
+  "Slovenia",
+  "South Africa",
+  "South Korea",
+  "Spain",
+  "Sweden",
+  "Switzerland",
+  "United Kingdom",
+  "United States",
   "Other",
 ];
 
