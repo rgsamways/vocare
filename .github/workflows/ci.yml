@@ -8,6 +8,28 @@ on:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    # M1 added the first tests that hit a real Postgres (not mocked, per this project's own
+    # "verify, never assert" convention) -- this service block, and the migrate step below,
+    # were the piece actually missing when that landed. Same image as local dev
+    # (docker-compose.yml); default port 5432 is fine here since CI has no other Postgres
+    # to collide with (the 5434 remap locally exists only to dodge Robin's own machine's
+    # other services).
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vocare
+          POSTGRES_PASSWORD: vocare
+          POSTGRES_DB: vocare
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://vocare:vocare@localhost:5432/vocare
     steps:
       - uses: actions/checkout@v4
 
@@ -20,5 +42,12 @@ jobs:
 
       - run: npm run lint --workspaces --if-present
       - run: npm run typecheck --workspaces --if-present
+      # Must run from backend/ itself, not repo root with --config= -- verified directly:
+      # invoking with `--config=backend/drizzle.config.ts` from repo root fails silently
+      # (the config's relative schema paths don't resolve the same way from outside its
+      # own directory), while running from inside backend/ with the default config works.
+      - name: Apply database migrations
+        working-directory: backend
+        run: npx drizzle-kit migrate
       - run: npm run test --workspaces --if-present
       - run: npm run build --workspaces --if-present
