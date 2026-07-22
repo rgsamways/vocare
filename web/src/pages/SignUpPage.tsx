@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { authClient } from "../lib/auth-client";
 import { detectDefaultCountry, listCountries } from "../lib/detect-country";
+import { SegmentedDateInput } from "../components/SegmentedDateInput";
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
@@ -23,6 +24,11 @@ export function SignUpPage() {
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (!dateOfBirth) {
+      setError("Please enter a complete date of birth.");
+      return;
+    }
 
     if (!acknowledged) {
       setError("Please confirm you understand you're talking to an AI system.");
@@ -93,13 +99,7 @@ export function SignUpPage() {
 
         <div className="field">
           <label htmlFor="dateOfBirth">Date of birth</label>
-          <input
-            id="dateOfBirth"
-            type="date"
-            required
-            value={dateOfBirth}
-            onChange={(e) => setDateOfBirth(e.target.value)}
-          />
+          <SegmentedDateInput id="dateOfBirth" value={dateOfBirth} onChange={setDateOfBirth} />
         </div>
 
         <div className="field">

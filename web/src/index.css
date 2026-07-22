@@ -129,6 +129,32 @@ h2.subtitle-h {
   background: #fbfaf7;
 }
 
+.segmented-date {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.segmented-date input {
+  width: 52px;
+  flex: none;
+  padding: 12px 0;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 14px;
+  background: #fbfaf7;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.segmented-date input.segmented-date-year {
+  width: 68px;
+}
+
+.segmented-date-sep {
+  color: var(--ink-soft);
+}
+
 .checkline {
   display: flex;
   gap: 10px;

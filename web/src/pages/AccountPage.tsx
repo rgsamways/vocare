@@ -41,6 +41,11 @@ export function AccountPage() {
       .then(setAccount);
   }, [session]);
 
+  async function handleSignOut() {
+    await authClient.signOut();
+    navigate("/", { replace: true });
+  }
+
   async function handleDelete() {
     setDeleting(true);
     try {
@@ -87,8 +92,11 @@ export function AccountPage() {
       )}
 
       <h2 className="subtitle-h">Manage account</h2>
+      <button className="btn secondary" onClick={handleSignOut}>
+        Sign out
+      </button>
       {!confirmingDelete ? (
-        <button className="btn danger" onClick={() => setConfirmingDelete(true)}>
+        <button className="btn danger" style={{ marginTop: 10 }} onClick={() => setConfirmingDelete(true)}>
           Delete my account
         </button>
       ) : (
