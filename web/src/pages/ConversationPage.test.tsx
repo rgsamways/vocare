@@ -1,7 +1,12 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { describe, expect, it, vi } from "vitest";
 import { ConversationPage } from "./ConversationPage";
+
+// This project's vitest config doesn't set test.globals, so
+// @testing-library/react's auto-registered afterEach(cleanup) never fires —
+// explicit here so multiple tests in this file don't accumulate DOM.
+afterEach(cleanup);
 
 const CRISIS_RESOURCE = {
   name: "Talk Suicide Canada",
@@ -22,6 +27,9 @@ describe("ConversationPage safety card", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
+        if (url.toString().endsWith("/sessions/current")) {
+          return new Response(JSON.stringify({ session: null }));
+        }
         if (url.toString().endsWith("/sessions/start")) {
           return new Response(
             JSON.stringify({
@@ -52,6 +60,7 @@ describe("ConversationPage safety card", () => {
       </MemoryRouter>,
     );
 
+    await waitFor(() => screen.getByRole("button", { name: /start practicing/i }));
     fireEvent.submit(screen.getByRole("button", { name: /start practicing/i }).closest("form")!);
     await waitFor(() => screen.getByPlaceholderText("Type your reply..."));
 
@@ -64,5 +73,134 @@ describe("ConversationPage safety card", () => {
 
     const link = screen.getByRole("link", { name: new RegExp(CRISIS_RESOURCE.name) });
     expect(link).toHaveAttribute("href", CRISIS_RESOURCE.href);
+  });
+});
+
+function stubStartAndTurnFetch() {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string) => {
+      if (url.toString().endsWith("/sessions/current")) {
+        return new Response(JSON.stringify({ session: null }));
+      }
+      if (url.toString().endsWith("/sessions/start")) {
+        return new Response(
+          JSON.stringify({
+            sessionId: "session-1",
+            status: "start",
+            chips: [],
+            timeExpectation: "Take your time.",
+            persona: { ageRange: "20s-30s", genderPresentation: "neutral" },
+          }),
+        );
+      }
+      if (url.toString().endsWith("/turns")) {
+        return new Response(JSON.stringify({ reply: "mocked reply", crisisFlagged: false }));
+      }
+      throw new Error(`Unexpected fetch: ${url}`);
+    }),
+  );
+}
+
+async function startSession() {
+  render(
+    <MemoryRouter>
+      <ConversationPage />
+    </MemoryRouter>,
+  );
+  await waitFor(() => screen.getByRole("button", { name: /start practicing/i }));
+  fireEvent.submit(screen.getByRole("button", { name: /start practicing/i }).closest("form")!);
+  await waitFor(() => screen.getByPlaceholderText("Type your reply..."));
+}
+
+async function submitTypedTurn() {
+  fireEvent.change(screen.getByPlaceholderText("Type your reply..."), {
+    target: { value: "a typed reply" },
+  });
+  fireEvent.submit(screen.getByPlaceholderText("Type your reply...").closest("form")!);
+  await waitFor(() => screen.getByText("mocked reply"));
+}
+
+describe("ConversationPage mic control", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    delete (window as unknown as { SpeechRecognition?: unknown }).SpeechRecognition;
+    delete (window as unknown as { webkitSpeechRecognition?: unknown }).webkitSpeechRecognition;
+  });
+
+  it("renders the mic control when SpeechRecognition is available, and typed submission still works", async () => {
+    class FakeSpeechRecognition {
+      continuous = false;
+      interimResults = false;
+      onresult: unknown = null;
+      onerror: unknown = null;
+      onend: unknown = null;
+      start() {}
+      stop() {}
+    }
+    vi.stubGlobal("SpeechRecognition", FakeSpeechRecognition);
+    stubStartAndTurnFetch();
+
+    await startSession();
+
+    expect(screen.getByRole("button", { name: /speak your reply/i })).toBeInTheDocument();
+
+    await submitTypedTurn();
+  });
+
+  it("does not render the mic control when SpeechRecognition is unavailable, and typed submission still works", async () => {
+    stubStartAndTurnFetch();
+
+    await startSession();
+
+    expect(screen.queryByRole("button", { name: /speak your reply/i })).not.toBeInTheDocument();
+
+    await submitTypedTurn();
+  });
+});
+
+// Regression test for the tab-bar data-loss gap: M2.1 made every tab
+// reachable in one tap, and navigating away from Conversation and back used
+// to always show a fresh setup screen, silently orphaning whatever session
+// was already open. This asserts the mount-time resume check actually skips
+// setup and restores the prior transcript, not just that the endpoint exists.
+describe("ConversationPage resume", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("skips the setup screen and restores the transcript when an open session already exists", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url.toString().endsWith("/sessions/current")) {
+          return new Response(
+            JSON.stringify({
+              session: {
+                sessionId: "session-resumed",
+                status: "in-progress",
+                anchorBadge: null,
+                chips: [],
+                timeExpectation: "Take your time.",
+                turns: [
+                  { speaker: "user", content: "Something I said before navigating away." },
+                  { speaker: "assistant", content: "A reply from before." },
+                ],
+                crisisFlagged: false,
+              },
+            }),
+          );
+        }
+        throw new Error(`Unexpected fetch: ${url}`);
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <ConversationPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => screen.getByText("A reply from before."));
+    expect(screen.getByText("Something I said before navigating away.")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /start practicing/i })).not.toBeInTheDocument();
   });
 });

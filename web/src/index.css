@@ -365,6 +365,18 @@ h2.subtitle-h {
   cursor: not-allowed;
 }
 
+.iconbtn.mic {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--line);
+}
+
+.iconbtn.mic.listening {
+  background: #d64545;
+  color: #fff;
+  border-color: #d64545;
+}
+
 .session-controls {
   display: flex;
   justify-content: center;

@@ -23,12 +23,14 @@ async function seedFullUser(user: { id: string; email: string }) {
       status: "complete",
       personaAgeRange: "20s-30s",
       personaGenderPresentation: "neutral",
+      mode: "text",
     },
     {
       userId: user.id,
       status: "start",
       personaAgeRange: "20s-30s",
       personaGenderPresentation: "neutral",
+      mode: "text",
     },
   ]);
   await db.insert(schema.stripePayments).values({

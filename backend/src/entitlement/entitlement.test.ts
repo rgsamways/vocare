@@ -32,6 +32,7 @@ async function seedSession(opts: {
     createdAt: opts.createdAt ?? new Date(),
     personaAgeRange: "20s-30s",
     personaGenderPresentation: "neutral",
+    mode: "text",
   });
 }
 

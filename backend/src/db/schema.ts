@@ -46,6 +46,10 @@ export const sessions = pgTable(
     // Decisions section on persona properties.
     personaAgeRange: text("persona_age_range").notNull(),
     personaGenderPresentation: text("persona_gender_presentation").notNull(),
+    // Chosen once at session start, reflecting which input path was offered —
+    // not re-derived per turn even if the user mixes voice and typed turns.
+    // See m3-voice-capture/design.md's Decisions.
+    mode: text("mode", { enum: ["voice", "text"] }).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),

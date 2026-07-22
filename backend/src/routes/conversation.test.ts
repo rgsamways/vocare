@@ -232,10 +232,99 @@ describe("conversation routes", () => {
     expect(body.crisisResource).toBeUndefined();
   });
 
+  it("persists the given mode on session-start, defaulting to text when omitted", async () => {
+    const app = buildApp();
+
+    const voiceRes = await app.inject({
+      method: "POST",
+      url: "/sessions/start",
+      payload: { mode: "voice" },
+    });
+    const { sessionId: voiceSessionId } = voiceRes.json();
+    const [voiceSession] = await db.select().from(schema.sessions).where(eq(schema.sessions.id, voiceSessionId));
+    expect(voiceSession.mode).toBe("voice");
+
+    const defaultRes = await app.inject({ method: "POST", url: "/sessions/start", payload: {} });
+    const { sessionId: defaultSessionId } = defaultRes.json();
+    const [defaultSession] = await db
+      .select()
+      .from(schema.sessions)
+      .where(eq(schema.sessions.id, defaultSessionId));
+    expect(defaultSession.mode).toBe("text");
+  });
+
+  it("keeps mode unchanged when a typed turn is submitted during a voice-mode session", async () => {
+    const app = buildApp();
+    const startRes = await app.inject({
+      method: "POST",
+      url: "/sessions/start",
+      payload: { mode: "voice" },
+    });
+    const { sessionId } = startRes.json();
+
+    const turnRes = await app.inject({
+      method: "POST",
+      url: `/sessions/${sessionId}/turns`,
+      payload: { content: "A typed turn during a voice-mode session." },
+    });
+    expect(turnRes.statusCode).toBe(200);
+
+    const [session] = await db.select().from(schema.sessions).where(eq(schema.sessions.id, sessionId));
+    expect(session.mode).toBe("voice");
+  });
+
   it("rejects an unauthenticated session-start", async () => {
     sessionUser = null;
     const app = buildApp();
     const res = await app.inject({ method: "POST", url: "/sessions/start", payload: {} });
     expect(res.statusCode).toBe(401);
+  });
+
+  it("GET /sessions/current returns null when there's no open session", async () => {
+    const app = buildApp();
+    const res = await app.inject({ method: "GET", url: "/sessions/current" });
+    expect(res.statusCode).toBe(200);
+    expect(res.json().session).toBeNull();
+  });
+
+  it("GET /sessions/current resumes an in-progress session with its transcript, not a fresh one", async () => {
+    const app = buildApp();
+    const startRes = await app.inject({ method: "POST", url: "/sessions/start", payload: {} });
+    const { sessionId } = startRes.json();
+
+    await app.inject({
+      method: "POST",
+      url: `/sessions/${sessionId}/turns`,
+      payload: { content: "First real turn." },
+    });
+
+    const currentRes = await app.inject({ method: "GET", url: "/sessions/current" });
+    expect(currentRes.statusCode).toBe(200);
+    const { session } = currentRes.json();
+    expect(session.sessionId).toBe(sessionId);
+    expect(session.status).toBe("in-progress");
+    expect(session.turns.map((t: { speaker: string }) => t.speaker)).toEqual(["user", "assistant"]);
+    expect(session.chips).toEqual([]); // already disappeared, per the setup-screen rule
+  });
+
+  it("GET /sessions/current still offers chips for a resumed session with no turns yet", async () => {
+    const app = buildApp();
+    const startRes = await app.inject({ method: "POST", url: "/sessions/start", payload: {} });
+    const { sessionId } = startRes.json();
+
+    const currentRes = await app.inject({ method: "GET", url: "/sessions/current" });
+    const { session } = currentRes.json();
+    expect(session.sessionId).toBe(sessionId);
+    expect(session.chips.length).toBeGreaterThan(0);
+  });
+
+  it("GET /sessions/current ignores completed sessions", async () => {
+    const app = buildApp();
+    const startRes = await app.inject({ method: "POST", url: "/sessions/start", payload: {} });
+    const { sessionId } = startRes.json();
+    await app.inject({ method: "POST", url: `/sessions/${sessionId}/end` });
+
+    const currentRes = await app.inject({ method: "GET", url: "/sessions/current" });
+    expect(currentRes.json().session).toBeNull();
   });
 });

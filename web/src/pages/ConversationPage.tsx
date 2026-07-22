@@ -1,7 +1,33 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 const API_URL = import.meta.env.VITE_API_URL as string;
+
+// Minimal local typing for the Web Speech API — not part of TS's default
+// DOM lib, and this is the only surface of it this codebase touches.
+interface SpeechRecognitionLike extends EventTarget {
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((event: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: (() => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+}
+
+type SpeechRecognitionCtor = new () => SpeechRecognitionLike;
+
+// Feature-detected, never user-agent-sniffed — see
+// m3-voice-capture/design.md's Decisions on why (Firefox has none, Safari's
+// support varies enough by context that per-browser special-casing isn't
+// worth it).
+function getSpeechRecognitionCtor(): SpeechRecognitionCtor | undefined {
+  const w = window as unknown as {
+    SpeechRecognition?: SpeechRecognitionCtor;
+    webkitSpeechRecognition?: SpeechRecognitionCtor;
+  };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition;
+}
 
 // Must match the exact string in backend/src/conversation/redirect.ts's
 // REDIRECT_TURN_CONTENT — rendering the same literal keeps the transcript
@@ -47,6 +73,15 @@ export function ConversationPage() {
   const [phase, setPhase] = useState<Phase>("setup");
   const [starting, setStarting] = useState(false);
   const [startError, setStartError] = useState<string | null>(null);
+  // True until the mount-time resume check below resolves — avoids flashing
+  // the setup screen before we know whether an open session already exists.
+  const [resuming, setResuming] = useState(true);
+
+  // Checked once — feature support doesn't change mid-session.
+  const [micSupported] = useState(() => Boolean(getSpeechRecognitionCtor()));
+  const [micListening, setMicListening] = useState(false);
+  const [micDisabled, setMicDisabled] = useState(false);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
 
   const [personaMode, setPersonaMode] = useState<"auto" | "custom">("auto");
   const [personaIndex, setPersonaIndex] = useState(0);
@@ -69,6 +104,37 @@ export function ConversationPage() {
   const [crisisFlagged, setCrisisFlagged] = useState(false);
   const [crisisResource, setCrisisResource] = useState<CrisisResource | null>(null);
   const [ending, setEnding] = useState(false);
+
+  // Resume support — before M2.1's tab bar existed, this page was the only
+  // way to reach the conversation, so losing local state on unmount never
+  // came up. Now that Feedback/Progress/Profile are all one tap away,
+  // navigating off and back needs to land back in the same session, not a
+  // fresh setup screen with the old one silently orphaned. Full history/
+  // resume UI is M6's job later; this only stops the silent data loss.
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/sessions/current`, { credentials: "include" });
+        if (res.ok) {
+          const { session } = await res.json();
+          if (session) {
+            setSessionId(session.sessionId);
+            setChips(session.chips);
+            setTimeExpectation(session.timeExpectation);
+            setAnchorBadge(session.anchorBadge);
+            setTurns(session.turns);
+            if (session.crisisFlagged) {
+              setCrisisFlagged(true);
+              if (session.crisisResource) setCrisisResource(session.crisisResource);
+            }
+            setPhase("chat");
+          }
+        }
+      } finally {
+        setResuming(false);
+      }
+    })();
+  }, []);
 
   function applyTurnResponse(userContent: string, body: { reply: string; crisisFlagged: boolean; crisisResource?: CrisisResource }) {
     setTurns((prev) => [
@@ -122,11 +188,16 @@ export function ConversationPage() {
 
       const persona = personaMode === "custom" ? PERSONA_OPTIONS[personaIndex] : undefined;
 
+      // Reflects which input path is offered in this browser, not literal
+      // mic usage yet — see m3-voice-capture/design.md's Decisions on
+      // `sessions.mode` meaning session-start intent, not per-turn enforcement.
+      const mode = micSupported ? "voice" : "text";
+
       const startRes = await fetch(`${API_URL}/sessions/start`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ anchorId, persona }),
+        body: JSON.stringify({ anchorId, persona, mode }),
       });
       const body = await startRes.json();
       if (!startRes.ok) {
@@ -171,6 +242,53 @@ export function ConversationPage() {
     await sendTurn(content);
   }
 
+  function startListening() {
+    const Ctor = getSpeechRecognitionCtor();
+    if (!Ctor) return;
+    try {
+      const recognition = new Ctor();
+      // continuous:true — false auto-stops as soon as the browser's
+      // endpointer thinks one utterance ended, which cut users off
+      // mid-thought on natural pauses (observed in manual testing, gets
+      // more aggressive with repeated use in the same tab). Stopping is now
+      // purely user-driven via the mic button's stop action.
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = 0; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        setComposerText(transcript);
+      };
+      recognition.onerror = () => {
+        setMicListening(false);
+        setMicDisabled(true);
+      };
+      recognition.onend = () => {
+        setMicListening(false);
+      };
+      recognitionRef.current = recognition;
+      recognition.start();
+      setMicListening(true);
+    } catch {
+      // Construction or start() threw (e.g. denied permission, Safari
+      // PWA-context restriction) — fall back to typed-only, same as an
+      // unsupported browser. See design.md's Decisions.
+      setMicDisabled(true);
+      setMicListening(false);
+    }
+  }
+
+  function handleMicToggle() {
+    if (micListening) {
+      recognitionRef.current?.stop();
+      setMicListening(false);
+    } else {
+      startListening();
+    }
+  }
+
   async function handleChipTap(chip: TopicSeedChip) {
     await sendTurn(chip.prompt);
   }
@@ -202,6 +320,10 @@ export function ConversationPage() {
     } finally {
       setEnding(false);
     }
+  }
+
+  if (resuming) {
+    return <main />;
   }
 
   if (phase === "setup") {
@@ -360,6 +482,17 @@ export function ConversationPage() {
           onChange={(e) => setComposerText(e.target.value)}
           disabled={sending}
         />
+        {micSupported && (
+          <button
+            type="button"
+            className={`iconbtn mic${micListening ? " listening" : ""}`}
+            onClick={handleMicToggle}
+            disabled={sending || micDisabled}
+            aria-label={micListening ? "Stop recording" : "Speak your reply"}
+          >
+            ●
+          </button>
+        )}
         <button className="iconbtn" type="submit" disabled={sending || !composerText.trim()} aria-label="Send message">
           →
         </button>

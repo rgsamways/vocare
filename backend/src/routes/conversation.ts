@@ -1,5 +1,5 @@
 import type { FastifyInstance } from "fastify";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, desc, eq, ne } from "drizzle-orm";
 import { getSessionUser } from "../auth/session.js";
 import { checkEntitlement } from "../entitlement/entitlement.js";
 import { db, schema } from "../db/client.js";
@@ -19,6 +19,7 @@ import type { AnchorSteering } from "../conversation/system-prompt.js";
 interface StartSessionBody {
   anchorId?: string;
   persona?: PersonaCombination;
+  mode?: "voice" | "text";
 }
 
 interface CreateAnchorBody {
@@ -75,6 +76,51 @@ async function loadHistory(sessionId: string): Promise<TranscriptTurnInput[]> {
 }
 
 export async function conversationRoutes(fastify: FastifyInstance) {
+  // Resume support — added after M2.1's tab bar made it trivial to navigate
+  // away mid-conversation and lose all client-side state (nothing was ever
+  // persisted beyond the DB rows themselves). Read-only: never creates or
+  // mutates a session, just tells the client whether one is already open so
+  // it can skip the setup screen. Full history/resume UI is M6's job later;
+  // this only prevents the silent data loss.
+  fastify.get("/sessions/current", async (request, reply) => {
+    const user = await getSessionUser(request);
+    if (!user) return reply.code(401).send({ error: "unauthenticated" });
+
+    const [existing] = await db
+      .select()
+      .from(schema.sessions)
+      .where(and(eq(schema.sessions.userId, user.id), ne(schema.sessions.status, "complete")))
+      .orderBy(desc(schema.sessions.createdAt))
+      .limit(1);
+
+    if (!existing) return reply.send({ session: null });
+
+    const anchor = existing.anchorId ? await loadOwnedAnchor(existing.anchorId, user.id) : null;
+    const history = await loadHistory(existing.id);
+
+    return reply.send({
+      session: {
+        sessionId: existing.id,
+        status: existing.status,
+        persona: {
+          ageRange: existing.personaAgeRange,
+          genderPresentation: existing.personaGenderPresentation,
+        },
+        anchorBadge: anchor
+          ? [anchor.targetRole, anchor.targetIndustry].filter(Boolean).join(", ") || anchor.label
+          : null,
+        // Chips only make sense before the conversation actually starts —
+        // same "disappear once the conversation starts" rule as a fresh
+        // session, just evaluated from history length instead of client state.
+        chips: history.length === 0 ? getTopicSeedChips(anchorSteeringFrom(anchor)) : [],
+        timeExpectation: TIME_EXPECTATION_COPY,
+        turns: history,
+        crisisFlagged: existing.crisisFlagged,
+        crisisResource: existing.crisisFlagged ? getCrisisResource(user.country) : undefined,
+      },
+    });
+  });
+
   fastify.post<{ Body: StartSessionBody }>("/sessions/start", async (request, reply) => {
     const user = await getSessionUser(request);
     if (!user) return reply.code(401).send({ error: "unauthenticated" });
@@ -84,7 +130,12 @@ export async function conversationRoutes(fastify: FastifyInstance) {
       return reply.code(402).send({ error: entitlement.reason, message: entitlement.message });
     }
 
-    const { anchorId, persona: requestedPersona } = request.body ?? {};
+    const { anchorId, persona: requestedPersona, mode: requestedMode } = request.body ?? {};
+    // Defaults to "text" for callers that don't send it (e.g. existing
+    // callers predating this change) — typed input is the baseline path
+    // everywhere else in this codebase; the web client (M3) always sends an
+    // explicit mode. See m3-voice-capture/design.md's Decisions.
+    const mode = requestedMode === "voice" ? "voice" : "text";
 
     let anchor: { targetRole: string | null; targetIndustry: string | null } | null = null;
     if (anchorId) {
@@ -105,6 +156,7 @@ export async function conversationRoutes(fastify: FastifyInstance) {
       anchorId: anchorId ?? null,
       personaAgeRange: persona.ageRange,
       personaGenderPresentation: persona.genderPresentation,
+      mode,
     });
 
     return reply.send({
