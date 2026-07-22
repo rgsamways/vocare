@@ -21,6 +21,10 @@
     --warn-ink: #7a4a1f;
     --safe-bg: #eef1fb;
     --safe-ink: #33417a;
+    /* Sparing warm accent — reserved only for genuinely earned moments
+       (an anchor revision, a session completing), never the base palette. */
+    --warm: #b8703f;
+    --warm-soft: #f6e8dc;
   }
   * { box-sizing: border-box; }
   body {
@@ -112,7 +116,11 @@
     display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: var(--ink-soft);
     background: #fbfaf7; border: 1px solid var(--line); border-radius: 20px; padding: 5px 11px; margin-bottom: 14px;
   }
-  .bubble { max-width: 84%; padding: 12px 15px; border-radius: 16px; margin-bottom: 12px; font-size: 14px; line-height: 1.5; }
+  /* Purposeful micro-motion, not flashy animation — bubbles settle in rather
+     than snap into place. Re-triggers naturally each time the tab becomes
+     visible again (display:none -> block restarts the animation). */
+  @keyframes bubble-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .bubble { max-width: 84%; padding: 12px 15px; border-radius: 16px; margin-bottom: 12px; font-size: 14px; line-height: 1.5; animation: bubble-in 0.4s ease-out backwards; }
   .bubble.ai { background: var(--accent-soft); color: var(--ink); border-bottom-left-radius: 4px; }
   .bubble.user { background: var(--accent); color: #fff; margin-left: auto; border-bottom-right-radius: 4px; }
   .composer {
@@ -125,10 +133,16 @@
     display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0;
   }
   .iconbtn svg.lucide-icon { vertical-align: 0; }
-  .iconbtn.ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); }
+  .iconbtn.ghost { background: transparent; color: var(--ink-soft); border: 1px solid var(--line); transition: background 0.2s, color 0.2s, border-color 0.2s; }
+  @keyframes mic-pulse { 0% { box-shadow: 0 0 0 0 rgba(63,93,84,0.35); } 70% { box-shadow: 0 0 0 9px rgba(63,93,84,0); } 100% { box-shadow: 0 0 0 0 rgba(63,93,84,0); } }
+  .iconbtn.ghost.listening { background: var(--accent); color: #fff; border-color: transparent; animation: mic-pulse 1.5s ease-out infinite; }
   .endlink { display: block; text-align: center; font-size: 12px; color: var(--ink-soft); margin-top: 22px; text-decoration: underline; cursor: pointer; }
 
-  .note-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+  .note-card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 14px; animation: bubble-in 0.4s ease-out backwards; }
+  .note-card:nth-of-type(1) { animation-delay: 0s; }
+  .note-card:nth-of-type(2) { animation-delay: 0.08s; }
+  .note-card:nth-of-type(3) { animation-delay: 0.16s; }
+  .note-card:nth-of-type(4) { animation-delay: 0.24s; }
   .note-card h3 { font-size: 13.5px; margin: 0 0 6px; display: flex; align-items: center; gap: 7px; }
   .note-card p { font-size: 13.5px; color: var(--ink-soft); margin: 0; line-height: 1.55; }
   .note-card blockquote {
@@ -163,6 +177,11 @@
   .anchor-card h4 { font-size: 13.5px; margin: 0 0 4px; display: flex; align-items: center; gap: 7px; }
   .anchor-card p { font-size: 12px; color: var(--ink-soft); margin: 0 0 8px; }
   .anchor-revision { font-size: 11.5px; color: var(--ink-soft); border-top: 1px dashed var(--line); padding-top: 8px; margin-top: 4px; }
+  /* The one deliberately warm moment on this whole screen — a revised anchor is a
+     genuinely earned bit of self-insight, not routine status, so it gets the sparing
+     warm accent instead of the neutral dashed-border treatment used everywhere else. */
+  .anchor-revision.earned { display: flex; align-items: flex-start; gap: 7px; background: var(--warm-soft); color: #7a4a22; border-top: none; border-radius: 8px; padding: 10px 11px; margin-top: 8px; }
+  .anchor-revision.earned svg.lucide-icon { color: var(--warm); margin-top: 1px; }
   .add-anchor-link { display: flex; align-items: center; justify-content: center; gap: 6px; text-align: center; font-size: 13px; color: var(--accent); font-weight: 600; padding: 12px; border: 1px dashed var(--line); border-radius: 10px; cursor: pointer; }
 
   .profile-row { display: flex; justify-content: space-between; align-items: center; padding: 13px 0; border-bottom: 1px solid var(--line); font-size: 13.5px; }
@@ -254,7 +273,7 @@
 
       <div class="composer">
         <input type="text" placeholder="Type your reply..." />
-        <button class="iconbtn ghost" aria-label="Use voice input"><i data-lucide="mic" class="lucide-icon"></i></button>
+        <button class="iconbtn ghost" id="mic-btn" aria-label="Use voice input — click to try the listening state" onclick="this.classList.toggle('listening')"><i data-lucide="mic" class="lucide-icon"></i></button>
         <button class="iconbtn" aria-label="Send message"><i data-lucide="send" class="lucide-icon"></i></button>
       </div>
       <span class="endlink">End session &amp; get feedback</span>
@@ -348,7 +367,7 @@
       <div class="anchor-card active">
         <h4><i data-lucide="target" class="lucide-icon sm"></i>Backend Engineer, FinTech</h4>
         <p>Active · linked to today's session</p>
-        <div class="anchor-revision">Revised 3 sessions ago: narrowed from "any backend role" to "backend infra, fintech specifically."</div>
+        <div class="anchor-revision earned"><i data-lucide="sparkles" class="lucide-icon sm"></i><span>Revised 3 sessions ago: narrowed from "any backend role" to "backend infra, fintech specifically."</span></div>
       </div>
       <div class="anchor-card">
         <h4><i data-lucide="target" class="lucide-icon sm"></i>Engineering Manager (general)</h4>
