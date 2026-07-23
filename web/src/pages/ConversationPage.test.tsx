@@ -195,6 +195,40 @@ describe("ConversationPage mic control", () => {
       expect(screen.getByPlaceholderText("Type your reply...")).toHaveValue("the project was a success"),
     );
   });
+
+  // Regression test for the real reported shape on Android Chrome (Pixel
+  // 10, 2026-07-23): the repetition is *inside* a single result segment's
+  // own recognized text ("the the the project"), not across separate
+  // adjacent segments — the fix above didn't touch this at all, which is
+  // why collapseRepeatedWords operates on the fully assembled transcript.
+  it("collapses a word repeated within a single SpeechRecognition segment's own text", async () => {
+    type ResultEvent = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+    const instance = {
+      continuous: false,
+      interimResults: false,
+      onresult: null as ((event: ResultEvent) => void) | null,
+      onerror: null,
+      onend: null,
+      start() {},
+      stop() {},
+    };
+    function FakeSpeechRecognition() {
+      return instance;
+    }
+    vi.stubGlobal("SpeechRecognition", FakeSpeechRecognition);
+    stubStartAndTurnFetch();
+
+    await startSession();
+    fireEvent.click(screen.getByRole("button", { name: /speak your reply/i }));
+
+    instance.onresult!({
+      results: [[{ transcript: "the the the project was a success" }]],
+    });
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("Type your reply...")).toHaveValue("the project was a success"),
+    );
+  });
 });
 
 // Regression test for the tab-bar data-loss gap: M2.1 made every tab
