@@ -137,6 +137,27 @@ export const feedbackReports = pgTable("feedback_reports", {
   generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/**
+ * Append-only pre-edit snapshots of `anchors` rows, written by
+ * `PATCH /anchors/:id` immediately before applying an update — the live
+ * `anchors` row is always "now"; this table is the history of every
+ * "before". See m6-progress-over-time/design.md's Decisions. No revision
+ * row is written for archive/unarchive (a state toggle, not a goal-language
+ * edit) — see that same section.
+ */
+export const anchorRevisions = pgTable("anchor_revisions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  anchorId: uuid("anchor_id")
+    .notNull()
+    .references(() => anchors.id),
+  label: text("label").notNull(),
+  targetRole: text("target_role"),
+  targetIndustry: text("target_industry"),
+  jobDescriptionText: text("job_description_text"),
+  company: text("company"),
+  revisedAt: timestamp("revised_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const stripeWebhookEvents = pgTable("stripe_webhook_events", {
   eventId: text("event_id").primaryKey(),
   processedAt: timestamp("processed_at", { withTimezone: true })

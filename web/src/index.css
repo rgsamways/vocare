@@ -13,6 +13,15 @@
   --danger: #9c3b3b;
   --safe-bg: #eef1fb;
   --safe-ink: #33417a;
+  /* Sparing warm accent — reserved only for genuinely earned moments (an
+     anchor revision), never the base palette. Mockup's exact values —
+     mockups/interface-v1.html. --warm-ink doesn't exist in the mockup
+     (it hardcodes color there), added here so dark mode has a matching
+     ink tone, same warn-bg/warn-ink and safe-bg/safe-ink pairing already
+     used for every other semantic color in this file. */
+  --warm: #b8703f;
+  --warm-soft: #f6e8dc;
+  --warm-ink: #7a4a22;
 }
 
 /* Same warm/sage character as light mode, inverted — not a generic slate/blue
@@ -31,6 +40,9 @@
   --danger: #d97a7a;
   --safe-bg: #1e2233;
   --safe-ink: #a8b8e8;
+  --warm: #d98a4f;
+  --warm-soft: #3d2c1c;
+  --warm-ink: #e8b98a;
 }
 
 body,
@@ -173,13 +185,20 @@ h2.subtitle-h {
 }
 
 .field input,
-.field select {
+.field select,
+.field textarea {
   width: 100%;
   padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 10px;
   font-size: 14px;
   background: #fbfaf7;
+  font-family: inherit;
+}
+
+.field textarea {
+  min-height: 70px;
+  resize: vertical;
 }
 
 .segmented-date {
@@ -541,4 +560,140 @@ h2.subtitle-h {
   font-size: 12.5px;
   color: var(--ink-soft);
   font-style: italic;
+}
+
+/* Ported from mockups/interface-v1.html's #progress screen (lines ~160-189),
+   per m6-progress-over-time/design.md's 2026-07-23 correction. The mockup's
+   icon markup (lucide `<i data-lucide>`) is deliberately not ported — this
+   app doesn't use an icon library on any existing page (FeedbackPage,
+   AccountPage), so these rules keep that same text-only precedent rather
+   than introducing one just for this screen. */
+
+.trend-line {
+  background: var(--accent-soft);
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 13px;
+  color: var(--accent);
+  margin-bottom: 14px;
+  line-height: 1.5;
+}
+
+details.history-row {
+  border-bottom: 1px solid var(--line);
+  padding: 14px 0;
+}
+
+details.history-row:last-child {
+  border-bottom: none;
+}
+
+details.history-row summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+}
+
+details.history-row summary::-webkit-details-marker {
+  display: none;
+}
+
+details.history-row summary .chevron-icon {
+  display: inline-block;
+  transition: transform 0.15s;
+}
+
+details.history-row[open] summary .chevron-icon {
+  transform: rotate(90deg);
+}
+
+.history-note-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.history-note {
+  font-size: 13.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-date {
+  font-size: 12px;
+  color: var(--ink-soft);
+  flex-shrink: 0;
+}
+
+.history-expanded {
+  margin-top: 12px;
+  padding: 12px;
+  background: var(--bg);
+  border-radius: 10px;
+  font-size: 12.5px;
+  line-height: 1.6;
+}
+
+.anchor-card {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.anchor-card.active {
+  border-color: var(--accent);
+}
+
+.anchor-card h4 {
+  font-size: 13.5px;
+  margin: 0 0 4px;
+}
+
+.anchor-card p {
+  font-size: 12px;
+  color: var(--ink-soft);
+  margin: 0 0 8px;
+}
+
+.anchor-revision {
+  font-size: 11.5px;
+  color: var(--ink-soft);
+  border-top: 1px dashed var(--line);
+  padding-top: 8px;
+  margin-top: 4px;
+}
+
+/* The one deliberately warm moment on this whole screen — a revised anchor is
+   a genuinely earned bit of self-insight, not routine status, so it gets the
+   sparing warm accent instead of the neutral dashed-border treatment above. */
+.anchor-revision.earned {
+  background: var(--warm-soft);
+  color: var(--warm-ink);
+  border-top: none;
+  border-radius: 8px;
+  padding: 10px 11px;
+  margin-top: 8px;
+}
+
+.add-anchor-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  color: var(--accent);
+  font-weight: 600;
+  padding: 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: none;
+  cursor: pointer;
 }

@@ -43,6 +43,13 @@
       "when": 1784769140183,
       "tag": "0005_funny_anthem",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1784781434150,
+      "tag": "0006_minor_groot",
+      "breakpoints": true
     }
   ]
 }

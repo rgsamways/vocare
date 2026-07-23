@@ -6,7 +6,9 @@ import { deleteUserCascade } from "./delete-user-cascade.js";
 const USER_A = { id: "cascade-test-user-a", email: "cascade-a@example.com" };
 const USER_B = { id: "cascade-test-user-b", email: "cascade-b@example.com" };
 
-async function seedFullUser(user: { id: string; email: string }): Promise<{ completeSessionId: string }> {
+async function seedFullUser(
+  user: { id: string; email: string },
+): Promise<{ completeSessionId: string; anchorId: string }> {
   await db.insert(schema.user).values({
     id: user.id,
     name: "",
@@ -50,6 +52,26 @@ async function seedFullUser(user: { id: string; email: string }): Promise<{ comp
     sessionId: completeSession.id,
     coachingNotes: [{ kind: "closing", note: "Thanks for practicing." }],
   });
+  const [anchor] = await db
+    .insert(schema.anchors)
+    .values({ userId: user.id, label: "Backend role", targetRole: "Backend engineer" })
+    .returning();
+  await db.insert(schema.anchorRevisions).values({
+    anchorId: anchor.id,
+    label: "Backend role",
+    targetRole: "Any backend role",
+  });
+  // Linked to the anchor above — proves deleteUserCascade can delete an
+  // anchor still referenced by one of the user's own sessions (sessions is
+  // deleted first; see delete-user-cascade.ts's Decisions comment).
+  await db.insert(schema.sessions).values({
+    userId: user.id,
+    status: "start",
+    anchorId: anchor.id,
+    personaAgeRange: "20s-30s",
+    personaGenderPresentation: "neutral",
+    mode: "text",
+  });
   await db.insert(schema.stripePayments).values({
     paymentIntentId: `pi_${user.id}`,
     userId: user.id,
@@ -72,7 +94,7 @@ async function seedFullUser(user: { id: string; email: string }): Promise<{ comp
     value: JSON.stringify({ email: user.email, name: "" }),
     expiresAt: new Date(Date.now() + 1000 * 60 * 5),
   });
-  return { completeSessionId: completeSession.id };
+  return { completeSessionId: completeSession.id, anchorId: anchor.id };
 }
 
 async function cleanup(user: { id: string; email: string }) {
@@ -84,8 +106,21 @@ async function cleanup(user: { id: string; email: string }) {
   if (sessionIds.length > 0) {
     await db.delete(schema.feedbackReports).where(inArray(schema.feedbackReports.sessionId, sessionIds));
     await db.delete(schema.sessionMiningResults).where(inArray(schema.sessionMiningResults.sessionId, sessionIds));
+    // Null out anchorId first — sessions.anchor_id's FK blocks deleting an
+    // anchor still referenced by one of these sessions (same reason
+    // deleteUserCascade itself deletes sessions before anchors).
+    await db.update(schema.sessions).set({ anchorId: null }).where(inArray(schema.sessions.id, sessionIds));
   }
   await db.delete(schema.sessions).where(eq(schema.sessions.userId, user.id));
+  const ownedAnchors = await db
+    .select({ id: schema.anchors.id })
+    .from(schema.anchors)
+    .where(eq(schema.anchors.userId, user.id));
+  const anchorIds = ownedAnchors.map((a) => a.id);
+  if (anchorIds.length > 0) {
+    await db.delete(schema.anchorRevisions).where(inArray(schema.anchorRevisions.anchorId, anchorIds));
+  }
+  await db.delete(schema.anchors).where(eq(schema.anchors.userId, user.id));
   await db.delete(schema.stripePayments).where(eq(schema.stripePayments.userId, user.id));
   await db.delete(schema.account).where(eq(schema.account.userId, user.id));
   await db.delete(schema.session).where(eq(schema.session.userId, user.id));
@@ -100,8 +135,8 @@ describe("deleteUserCascade", () => {
   });
 
   it("removes rows from every table for the deleted user, and leaves another user's rows untouched", async () => {
-    const { completeSessionId: sessionIdA } = await seedFullUser(USER_A);
-    const { completeSessionId: sessionIdB } = await seedFullUser(USER_B);
+    const { completeSessionId: sessionIdA, anchorId: anchorIdA } = await seedFullUser(USER_A);
+    const { completeSessionId: sessionIdB, anchorId: anchorIdB } = await seedFullUser(USER_B);
 
     await deleteUserCascade(USER_A.id);
 
@@ -122,6 +157,10 @@ describe("deleteUserCascade", () => {
         .from(schema.feedbackReports)
         .where(eq(schema.feedbackReports.sessionId, sessionIdA)),
     ).toHaveLength(0);
+    expect(await db.select().from(schema.anchors).where(eq(schema.anchors.id, anchorIdA))).toHaveLength(0);
+    expect(
+      await db.select().from(schema.anchorRevisions).where(eq(schema.anchorRevisions.anchorId, anchorIdA)),
+    ).toHaveLength(0);
     expect(
       await db
         .select()
@@ -141,12 +180,16 @@ describe("deleteUserCascade", () => {
     expect(await db.select().from(schema.user).where(eq(schema.user.id, USER_B.id))).toHaveLength(1);
     expect(
       await db.select().from(schema.sessions).where(eq(schema.sessions.userId, USER_B.id)),
-    ).toHaveLength(2);
+    ).toHaveLength(3);
     expect(
       await db
         .select()
         .from(schema.sessionMiningResults)
         .where(eq(schema.sessionMiningResults.sessionId, sessionIdB)),
+    ).toHaveLength(1);
+    expect(await db.select().from(schema.anchors).where(eq(schema.anchors.id, anchorIdB))).toHaveLength(1);
+    expect(
+      await db.select().from(schema.anchorRevisions).where(eq(schema.anchorRevisions.anchorId, anchorIdB)),
     ).toHaveLength(1);
     expect(
       await db

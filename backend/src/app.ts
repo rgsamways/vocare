@@ -9,6 +9,8 @@ import { entitlementRoutes } from "./routes/entitlement.js";
 import { accountRoutes } from "./routes/account.js";
 import { conversationRoutes } from "./routes/conversation.js";
 import { feedbackRoutes } from "./routes/feedback.js";
+import { anchorsRoutes } from "./routes/anchors.js";
+import { progressRoutes } from "./routes/progress.js";
 
 export function buildApp() {
   const fastify = Fastify({ logger: true });
@@ -31,6 +33,8 @@ export function buildApp() {
   fastify.register(accountRoutes);
   fastify.register(conversationRoutes);
   fastify.register(feedbackRoutes);
+  fastify.register(anchorsRoutes);
+  fastify.register(progressRoutes);
 
   return fastify;
 }
