@@ -27,6 +27,9 @@ describe("ConversationPage safety card", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
+        if (url.toString().endsWith("/anchors")) {
+          return new Response(JSON.stringify([]));
+        }
         if (url.toString().endsWith("/sessions/current")) {
           return new Response(JSON.stringify({ session: null }));
         }
@@ -80,6 +83,9 @@ function stubStartAndTurnFetch() {
   vi.stubGlobal(
     "fetch",
     vi.fn(async (url: string) => {
+      if (url.toString().endsWith("/anchors")) {
+        return new Response(JSON.stringify([]));
+      }
       if (url.toString().endsWith("/sessions/current")) {
         return new Response(JSON.stringify({ session: null }));
       }
@@ -249,6 +255,9 @@ describe("ConversationPage resume", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
+        if (url.toString().endsWith("/anchors")) {
+          return new Response(JSON.stringify([]));
+        }
         if (url.toString().endsWith("/sessions/current")) {
           return new Response(
             JSON.stringify({
@@ -280,5 +289,134 @@ describe("ConversationPage resume", () => {
     await waitFor(() => screen.getByText("A reply from before."));
     expect(screen.getByText("Something I said before navigating away.")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /start practicing/i })).not.toBeInTheDocument();
+  });
+});
+
+const EXISTING_ANCHOR = {
+  id: "anchor-1",
+  label: "Backend Engineer, FinTech",
+  targetRole: "Backend infra",
+  targetIndustry: "FinTech",
+};
+
+interface FetchCall {
+  url: string;
+  method: string;
+  body?: Record<string, unknown>;
+}
+
+function stubAnchorPickerFetch(existingAnchors: Array<typeof EXISTING_ANCHOR>): FetchCall[] {
+  const calls: FetchCall[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (url: string, init?: RequestInit) => {
+      const method = init?.method ?? "GET";
+      calls.push({
+        url: url.toString(),
+        method,
+        body: init?.body ? JSON.parse(init.body as string) : undefined,
+      });
+
+      if (url.toString().endsWith("/sessions/current")) {
+        return new Response(JSON.stringify({ session: null }));
+      }
+      if (url.toString().endsWith("/anchors") && method === "GET") {
+        return new Response(JSON.stringify(existingAnchors));
+      }
+      if (url.toString().endsWith("/anchors") && method === "POST") {
+        return new Response(
+          JSON.stringify({ id: "anchor-new", label: "Fresh anchor", targetRole: null, targetIndustry: null }),
+        );
+      }
+      if (url.toString().endsWith("/sessions/start")) {
+        return new Response(
+          JSON.stringify({
+            sessionId: "session-1",
+            status: "start",
+            chips: [],
+            timeExpectation: "Take your time.",
+            persona: { ageRange: "20s-30s", genderPresentation: "neutral" },
+          }),
+        );
+      }
+      throw new Error(`Unexpected fetch: ${method} ${url}`);
+    }),
+  );
+  return calls;
+}
+
+// Regression coverage for the gap Robin found explaining anchors: the
+// session-start toggle used to only ever create a brand-new anchor via
+// POST /anchors, with no way to reuse one that already exists — every
+// checked session created another anchor instead of linking to one.
+describe("ConversationPage existing-anchor picker", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("shows a picker (not the checkbox) when the user has existing anchors, and picking one skips POST /anchors", async () => {
+    const calls = stubAnchorPickerFetch([EXISTING_ANCHOR]);
+
+    render(
+      <MemoryRouter>
+        <ConversationPage />
+      </MemoryRouter>,
+    );
+
+    const picker = await waitFor(() =>
+      screen.getByRole("combobox", { name: /practicing for something specific/i }),
+    );
+    expect(screen.queryByRole("checkbox", { name: /practicing for something specific/i })).not.toBeInTheDocument();
+
+    fireEvent.change(picker, { target: { value: EXISTING_ANCHOR.id } });
+    fireEvent.submit(screen.getByRole("button", { name: /start practicing/i }).closest("form")!);
+
+    await waitFor(() => screen.getByPlaceholderText("Type your reply..."));
+
+    expect(calls.some((c) => c.url.endsWith("/anchors") && c.method === "POST")).toBe(false);
+    const startCall = calls.find((c) => c.url.endsWith("/sessions/start"));
+    expect(startCall?.body?.anchorId).toBe(EXISTING_ANCHOR.id);
+  });
+
+  it("still calls POST /anchors when 'create a new anchor' is chosen", async () => {
+    const calls = stubAnchorPickerFetch([EXISTING_ANCHOR]);
+
+    render(
+      <MemoryRouter>
+        <ConversationPage />
+      </MemoryRouter>,
+    );
+
+    const picker = await waitFor(() =>
+      screen.getByRole("combobox", { name: /practicing for something specific/i }),
+    );
+    fireEvent.change(picker, { target: { value: "new" } });
+
+    const labelInput = await waitFor(() => screen.getByLabelText("Label"));
+    fireEvent.change(labelInput, { target: { value: "Fresh anchor" } });
+    fireEvent.submit(screen.getByRole("button", { name: /start practicing/i }).closest("form")!);
+
+    await waitFor(() => screen.getByPlaceholderText("Type your reply..."));
+
+    const postAnchor = calls.find((c) => c.url.endsWith("/anchors") && c.method === "POST");
+    expect(postAnchor?.body?.label).toBe("Fresh anchor");
+    const startCall = calls.find((c) => c.url.endsWith("/sessions/start"));
+    expect(startCall?.body?.anchorId).toBe("anchor-new");
+  });
+
+  it("shows the original checkbox, not a picker, for a user with zero anchors", async () => {
+    stubAnchorPickerFetch([]);
+
+    render(
+      <MemoryRouter>
+        <ConversationPage />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => screen.getByRole("button", { name: /start practicing/i }));
+    await waitFor(() =>
+      expect(screen.getByRole("checkbox", { name: /practicing for something specific/i })).toBeInTheDocument(),
+    );
+    expect(
+      screen.queryByRole("combobox", { name: /practicing for something specific/i }),
+    ).not.toBeInTheDocument();
   });
 });

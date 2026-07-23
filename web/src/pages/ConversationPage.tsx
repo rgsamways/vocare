@@ -66,6 +66,16 @@ interface Turn {
   content: string;
 }
 
+interface AnchorSummary {
+  id: string;
+  label: string;
+  targetRole: string | null;
+  targetIndustry: string | null;
+}
+
+// "none" / "new" plus any of the user's existing anchor ids.
+type AnchorChoice = "none" | "new" | string;
+
 type Phase = "setup" | "chat";
 
 export function ConversationPage() {
@@ -86,6 +96,14 @@ export function ConversationPage() {
 
   const [personaMode, setPersonaMode] = useState<"auto" | "custom">("auto");
   const [personaIndex, setPersonaIndex] = useState(0);
+
+  // Existing-anchor picker (M6, Group 11) — only shown when the user already
+  // has at least one active anchor; otherwise the original create-or-none
+  // checkbox toggle below is unchanged, so a first-time user never sees an
+  // empty picker. See design.md's second 2026-07-23 correction.
+  const [existingAnchors, setExistingAnchors] = useState<AnchorSummary[]>([]);
+  const [anchorChoice, setAnchorChoice] = useState<AnchorChoice>("none");
+  const hasExistingAnchors = existingAnchors.length > 0;
 
   const [wantsAnchor, setWantsAnchor] = useState(false);
   const [anchorLabel, setAnchorLabel] = useState("");
@@ -137,6 +155,16 @@ export function ConversationPage() {
     })();
   }, []);
 
+  // Active anchors only — an archived one is retired, not a session target.
+  // Failing closed to an empty list falls back to the original create-or-none
+  // toggle below rather than blocking setup on this fetch.
+  useEffect(() => {
+    fetch(`${API_URL}/anchors`, { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : []))
+      .then(setExistingAnchors)
+      .catch(() => setExistingAnchors([]));
+  }, []);
+
   function applyTurnResponse(userContent: string, body: { reply: string; crisisFlagged: boolean; crisisResource?: CrisisResource }) {
     setTurns((prev) => [
       ...prev,
@@ -155,7 +183,14 @@ export function ConversationPage() {
     e.preventDefault();
     setStartError(null);
 
-    if (wantsAnchor && !anchorLabel.trim()) {
+    // With existing anchors, the picker (not the checkbox) drives whether
+    // a new anchor is being created — "create new" is the only choice that
+    // still needs a label. Without any, the original toggle is unchanged.
+    const creatingNewAnchor = hasExistingAnchors ? anchorChoice === "new" : wantsAnchor;
+    const pickedAnchorId =
+      hasExistingAnchors && anchorChoice !== "none" && anchorChoice !== "new" ? anchorChoice : null;
+
+    if (creatingNewAnchor && !anchorLabel.trim()) {
       setStartError("Give your anchor a short label, or turn off the anchor toggle.");
       return;
     }
@@ -165,7 +200,14 @@ export function ConversationPage() {
       let anchorId: string | undefined;
       let anchorBadgeText: string | null = null;
 
-      if (wantsAnchor) {
+      if (pickedAnchorId) {
+        // Reusing an existing anchor — no POST /anchors call at all.
+        const picked = existingAnchors.find((a) => a.id === pickedAnchorId);
+        anchorId = pickedAnchorId;
+        anchorBadgeText = picked
+          ? [picked.targetRole, picked.targetIndustry].filter(Boolean).join(", ") || picked.label
+          : null;
+      } else if (creatingNewAnchor) {
         const anchorRes = await fetch(`${API_URL}/anchors`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -368,17 +410,36 @@ export function ConversationPage() {
             </div>
           )}
 
-          <label className="checkline">
-            <input
-              type="checkbox"
-              checked={wantsAnchor}
-              onChange={(e) => setWantsAnchor(e.target.checked)}
-              style={{ marginTop: "2px" }}
-            />
-            <span>Practicing for something specific? Link a target role or industry.</span>
-          </label>
+          {hasExistingAnchors ? (
+            <div className="field">
+              <label htmlFor="anchor-choice">Practicing for something specific?</label>
+              <select
+                id="anchor-choice"
+                value={anchorChoice}
+                onChange={(e) => setAnchorChoice(e.target.value)}
+              >
+                <option value="none">No, general practice</option>
+                {existingAnchors.map((anchor) => (
+                  <option key={anchor.id} value={anchor.id}>
+                    {anchor.label}
+                  </option>
+                ))}
+                <option value="new">Create a new anchor</option>
+              </select>
+            </div>
+          ) : (
+            <label className="checkline">
+              <input
+                type="checkbox"
+                checked={wantsAnchor}
+                onChange={(e) => setWantsAnchor(e.target.checked)}
+                style={{ marginTop: "2px" }}
+              />
+              <span>Practicing for something specific? Link a target role or industry.</span>
+            </label>
+          )}
 
-          {wantsAnchor && (
+          {(hasExistingAnchors ? anchorChoice === "new" : wantsAnchor) && (
             <>
               <div className="field">
                 <label htmlFor="anchor-label">Label</label>
