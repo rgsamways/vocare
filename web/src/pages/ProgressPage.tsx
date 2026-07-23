@@ -277,15 +277,14 @@ function AnchorCard({
     );
   }
 
-  const statusLine = anchor.archivedAt
-    ? "Archived"
-    : [anchor.targetRole, anchor.targetIndustry].filter(Boolean).join(", ") || "Active";
+  const roleIndustryLine = [anchor.targetRole, anchor.targetIndustry].filter(Boolean).join(", ");
   const latestRevision = latestRevisionSummary(anchor, revisions);
 
   return (
     <li className={`anchor-card${anchor.archivedAt ? "" : " active"}`}>
       <h4>{anchor.label}</h4>
-      <p>{statusLine}</p>
+      <p>{anchor.archivedAt ? "Archived" : "Active"}</p>
+      {roleIndustryLine && <p>{roleIndustryLine}</p>}
 
       {latestRevision && (
         <div className="anchor-revision earned">
@@ -295,20 +294,17 @@ function AnchorCard({
         </div>
       )}
 
-      <button className="btn secondary" style={{ marginTop: 10 }} onClick={onStartEdit}>
-        Edit
-      </button>
-      <button className="btn secondary" style={{ marginTop: 8 }} onClick={onToggleArchive}>
-        {anchor.archivedAt ? "Unarchive" : "Archive"}
-      </button>
-      <button
-        className="btn secondary"
-        style={{ marginTop: 8 }}
-        onClick={onToggleHistory}
-        aria-expanded={historyOpen}
-      >
-        {historyOpen ? "Hide full history" : "View full history"}
-      </button>
+      <div className="anchor-card-actions">
+        <button type="button" onClick={onStartEdit}>
+          Edit
+        </button>
+        <button type="button" onClick={onToggleArchive}>
+          {anchor.archivedAt ? "Unarchive" : "Archive"}
+        </button>
+        <button type="button" onClick={onToggleHistory} aria-expanded={historyOpen}>
+          {historyOpen ? "Hide full history" : "View full history"}
+        </button>
+      </div>
 
       {historyOpen && (
         <div aria-live="polite">

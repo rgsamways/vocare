@@ -697,3 +697,26 @@ details.history-row[open] summary .chevron-icon {
   background: none;
   cursor: pointer;
 }
+
+/* The mockup's anchor-card has no actions at all (it's static) — 9.5 left
+   "style the actions consistently" as a judgment call. First pass used
+   stacked full-width .btn.secondary boxes, which dominated the compact card
+   and clashed with the mockup's minimal feel (Robin flagged this live).
+   Restyled as a compact horizontal row of text-link actions, same visual
+   weight as .add-anchor-link/.endlink rather than boxed buttons. */
+.anchor-card-actions {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+
+.anchor-card-actions button {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
