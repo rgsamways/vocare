@@ -157,6 +157,44 @@ describe("ConversationPage mic control", () => {
 
     await submitTypedTurn();
   });
+
+  // Regression test for a real bug reported 2026-07-23: Chrome's endpointer,
+  // under fast speech, sometimes finalizes the exact same segment more than
+  // once as separate adjacent entries in event.results — before the fix
+  // below, ConversationPage concatenated every entry unconditionally,
+  // duplicating that segment's words in the composer every time it happened.
+  it("collapses an immediately-repeated segment from SpeechRecognition results instead of duplicating it", async () => {
+    type ResultEvent = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+    const instance = {
+      continuous: false,
+      interimResults: false,
+      onresult: null as ((event: ResultEvent) => void) | null,
+      onerror: null,
+      onend: null,
+      start() {},
+      stop() {},
+    };
+    function FakeSpeechRecognition() {
+      return instance;
+    }
+    vi.stubGlobal("SpeechRecognition", FakeSpeechRecognition);
+    stubStartAndTurnFetch();
+
+    await startSession();
+    fireEvent.click(screen.getByRole("button", { name: /speak your reply/i }));
+
+    instance.onresult!({
+      results: [
+        [{ transcript: "the project " }],
+        [{ transcript: "the project " }],
+        [{ transcript: "was a success" }],
+      ],
+    });
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("Type your reply...")).toHaveValue("the project was a success"),
+    );
+  });
 });
 
 // Regression test for the tab-bar data-loss gap: M2.1 made every tab

@@ -255,9 +255,26 @@ export function ConversationPage() {
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.onresult = (event) => {
+        // Reported 2026-07-23: fast speech leaves less silence for Chrome's
+        // endpointer to cleanly delimit segment boundaries, and it sometimes
+        // finalizes the exact same segment more than once as separate
+        // adjacent entries in event.results — duplicating that segment's
+        // words every time it happens. Not something our code changed (no
+        // edits here since M3); Chrome's own recognition service appears to
+        // have shifted, and its exact segmentation behavior isn't publicly
+        // documented (see m3-voice-capture/design.md's Decisions). This
+        // collapses only an exact, immediately-adjacent repeat of a whole
+        // segment — a legitimate back-to-back verbatim repeat ("very very
+        // good") could in principle also be a single segment repeated this
+        // way and get collapsed, but that's rare next to the disruptive,
+        // frequent glitch this targets.
         let transcript = "";
+        let previousSegment: string | null = null;
         for (let i = 0; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+          const segment = event.results[i][0].transcript;
+          if (segment === previousSegment) continue;
+          transcript += segment;
+          previousSegment = segment;
         }
         setComposerText(transcript);
       };
@@ -316,7 +333,7 @@ export function ConversationPage() {
         method: "POST",
         credentials: "include",
       });
-      navigate("/account");
+      navigate(`/feedback/${sessionId}`);
     } finally {
       setEnding(false);
     }
