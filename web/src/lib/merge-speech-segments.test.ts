@@ -31,4 +31,12 @@ describe("mergeSpeechSegments", () => {
       "I said thatand then this",
     );
   });
+
+  // Corrected 2026-07-23: an earlier version merged on startsWith alone,
+  // which treated an identical (equal-length) segment as an "extension" of
+  // itself and dropped it — wrongly collapsing a genuinely repeated word
+  // ("test test test", reported on a laptop) down to one instance.
+  it("does not merge equal-length identical segments — each is a separate, genuinely repeated utterance", () => {
+    expect(mergeSpeechSegments(["test ", "test ", "test"])).toBe("test test test");
+  });
 });

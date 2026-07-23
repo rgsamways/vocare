@@ -158,12 +158,15 @@ describe("ConversationPage mic control", () => {
     await submitTypedTurn();
   });
 
-  // Regression test for a real bug reported 2026-07-23: Chrome's endpointer,
-  // under fast speech, sometimes finalizes the exact same segment more than
-  // once as separate adjacent entries in event.results — before the fix
-  // below, ConversationPage concatenated every entry unconditionally,
-  // duplicating that segment's words in the composer every time it happened.
-  it("collapses an immediately-repeated segment from SpeechRecognition results instead of duplicating it", async () => {
+  // Regression test for 2026-07-23, corrected same day: an earlier fix
+  // guessed that Chrome finalizing the exact same segment twice was itself
+  // a bug and collapsed it — but Robin then reproduced a real case on a
+  // laptop where genuinely repeating a word on purpose ("test test test")
+  // got collapsed down to one "test", which is wrong. Exact-duplicate,
+  // equal-length segments are always concatenated now — only a segment
+  // that's strictly *longer* and a prefix-extension of the previous one
+  // (mergeSpeechSegments' actual fix, below) gets merged.
+  it("preserves an exact word/segment repeated on purpose instead of collapsing it", async () => {
     type ResultEvent = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
     const instance = {
       continuous: false,
@@ -184,49 +187,11 @@ describe("ConversationPage mic control", () => {
     fireEvent.click(screen.getByRole("button", { name: /speak your reply/i }));
 
     instance.onresult!({
-      results: [
-        [{ transcript: "the project " }],
-        [{ transcript: "the project " }],
-        [{ transcript: "was a success" }],
-      ],
+      results: [[{ transcript: "test " }], [{ transcript: "test " }], [{ transcript: "test" }]],
     });
 
     await waitFor(() =>
-      expect(screen.getByPlaceholderText("Type your reply...")).toHaveValue("the project was a success"),
-    );
-  });
-
-  // Regression test for the real reported shape on Android Chrome (Pixel
-  // 10, 2026-07-23): the repetition is *inside* a single result segment's
-  // own recognized text ("the the the project"), not across separate
-  // adjacent segments — the fix above didn't touch this at all, which is
-  // why collapseRepeatedWords operates on the fully assembled transcript.
-  it("collapses a word repeated within a single SpeechRecognition segment's own text", async () => {
-    type ResultEvent = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
-    const instance = {
-      continuous: false,
-      interimResults: false,
-      onresult: null as ((event: ResultEvent) => void) | null,
-      onerror: null,
-      onend: null,
-      start() {},
-      stop() {},
-    };
-    function FakeSpeechRecognition() {
-      return instance;
-    }
-    vi.stubGlobal("SpeechRecognition", FakeSpeechRecognition);
-    stubStartAndTurnFetch();
-
-    await startSession();
-    fireEvent.click(screen.getByRole("button", { name: /speak your reply/i }));
-
-    instance.onresult!({
-      results: [[{ transcript: "the the the project was a success" }]],
-    });
-
-    await waitFor(() =>
-      expect(screen.getByPlaceholderText("Type your reply...")).toHaveValue("the project was a success"),
+      expect(screen.getByPlaceholderText("Type your reply...")).toHaveValue("test test test"),
     );
   });
 
