@@ -13,10 +13,11 @@ import { db, schema } from "../db/client.js";
  * tables — real names confirmed via its Drizzle adapter (tasks.md 2.5), not
  * guessed.
  *
- * `session_mining_results` is keyed by `sessionId`, not `userId`, so it's
- * deleted from the owning user's session ids, ordered before `sessions`
- * itself (that FK has no `ON DELETE CASCADE` either — see this table's own
- * schema.ts comment on why).
+ * `session_mining_results` and `feedback_reports` are both keyed by
+ * `sessionId`, not `userId`, so they're deleted from the owning user's
+ * session ids, ordered before `sessions` itself (that FK has no
+ * `ON DELETE CASCADE` either — see those tables' own schema.ts comments on
+ * why).
  *
  * `verification` rows aren't keyed by userId (Better Auth keys them by the
  * token itself, storing the email inside a JSON `value` column) — matched
@@ -24,14 +25,15 @@ import { db, schema } from "../db/client.js";
  * deletion (see account-management spec's "cannot sign in again" scenario).
  *
  * Tables named in proposal.md/spec Section 13 that don't exist yet as of
- * M1 — transcript_turns, feedback_reports, tier1_profiles, anchors,
- * anchor_revisions — belong in this same function, added by whichever
- * module (M2/M5/M6/M9) creates each one. This is the one file to grep to
- * check whether that happened. NOTE (M4, 2026-07-22): transcript_turns still
- * isn't covered here, and its FK has no ON DELETE CASCADE — deleting a user
- * with any completed session may already fail on that pre-existing gap
- * today, independent of this module. Flagged to Robin, not fixed here (out
- * of scope for M4 — see tasks.md 4.3).
+ * M1 — transcript_turns, tier1_profiles, anchors, anchor_revisions — belong
+ * in this same function, added by whichever module (M2/M6/M9) creates each
+ * one. This is the one file to grep to check whether that happened. NOTE
+ * (M4, 2026-07-22): transcript_turns still isn't covered here, and its FK
+ * has no ON DELETE CASCADE — deleting a user with any completed session may
+ * already fail on that pre-existing gap today, independent of this module.
+ * Flagged to Robin, not fixed here (out of scope for M4 — see tasks.md 4.3).
+ * Still unresolved as of M5 (2026-07-22) — feedback_reports is now covered
+ * below, but this gap is untouched; not this module's job to fix either.
  */
 export async function deleteUserCascade(userId: string): Promise<void> {
   await db.transaction(async (tx) => {
@@ -44,6 +46,9 @@ export async function deleteUserCascade(userId: string): Promise<void> {
       .where(eq(schema.sessions.userId, userId));
     const sessionIds = ownedSessions.map((s) => s.id);
     if (sessionIds.length > 0) {
+      await tx
+        .delete(schema.feedbackReports)
+        .where(inArray(schema.feedbackReports.sessionId, sessionIds));
       await tx
         .delete(schema.sessionMiningResults)
         .where(inArray(schema.sessionMiningResults.sessionId, sessionIds));

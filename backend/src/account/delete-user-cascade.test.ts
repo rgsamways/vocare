@@ -46,6 +46,10 @@ async function seedFullUser(user: { id: string; email: string }): Promise<{ comp
     quantifiedImpactExamples: [],
     topicRelevanceScore: 80,
   });
+  await db.insert(schema.feedbackReports).values({
+    sessionId: completeSession.id,
+    coachingNotes: [{ kind: "closing", note: "Thanks for practicing." }],
+  });
   await db.insert(schema.stripePayments).values({
     paymentIntentId: `pi_${user.id}`,
     userId: user.id,
@@ -78,6 +82,7 @@ async function cleanup(user: { id: string; email: string }) {
     .where(eq(schema.sessions.userId, user.id));
   const sessionIds = ownedSessions.map((s) => s.id);
   if (sessionIds.length > 0) {
+    await db.delete(schema.feedbackReports).where(inArray(schema.feedbackReports.sessionId, sessionIds));
     await db.delete(schema.sessionMiningResults).where(inArray(schema.sessionMiningResults.sessionId, sessionIds));
   }
   await db.delete(schema.sessions).where(eq(schema.sessions.userId, user.id));
@@ -114,6 +119,12 @@ describe("deleteUserCascade", () => {
     expect(
       await db
         .select()
+        .from(schema.feedbackReports)
+        .where(eq(schema.feedbackReports.sessionId, sessionIdA)),
+    ).toHaveLength(0);
+    expect(
+      await db
+        .select()
         .from(schema.stripePayments)
         .where(eq(schema.stripePayments.userId, USER_A.id)),
     ).toHaveLength(0);
@@ -136,6 +147,12 @@ describe("deleteUserCascade", () => {
         .select()
         .from(schema.sessionMiningResults)
         .where(eq(schema.sessionMiningResults.sessionId, sessionIdB)),
+    ).toHaveLength(1);
+    expect(
+      await db
+        .select()
+        .from(schema.feedbackReports)
+        .where(eq(schema.feedbackReports.sessionId, sessionIdB)),
     ).toHaveLength(1);
     expect(
       await db

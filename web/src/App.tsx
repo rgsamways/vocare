@@ -17,6 +17,7 @@ function App() {
           <Route path="/account" element={<AccountPage />} />
           <Route path="/practice" element={<ConversationPage />} />
           <Route path="/feedback" element={<FeedbackPage />} />
+          <Route path="/feedback/:sessionId" element={<FeedbackPage />} />
           <Route path="/progress" element={<ProgressPage />} />
         </Route>
       </Routes>

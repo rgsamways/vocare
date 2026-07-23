@@ -114,6 +114,29 @@ export const sessionMiningResults = pgTable("session_mining_results", {
   minedAt: timestamp("mined_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export interface CoachingNote {
+  kind: string;
+  note: string;
+  quote?: string;
+}
+
+/**
+ * One row per completed, mined session, written by `mineSession` right after
+ * its `session_mining_results` insert (m5-coaching-feedback/design.md's
+ * Decisions) — `sessionId` is the primary key itself, same natural-key
+ * convention as `sessionMiningResults` above, for the same one-row-per-session
+ * reason. `coachingNotes` never carries `topicRelevanceScore` or any other
+ * numeric score — see backend/src/feedback/notes.ts's `SessionMiningResultInput`
+ * type, which excludes it structurally from what generates this column.
+ */
+export const feedbackReports = pgTable("feedback_reports", {
+  sessionId: uuid("session_id")
+    .primaryKey()
+    .references(() => sessions.id),
+  coachingNotes: jsonb("coaching_notes").notNull().$type<CoachingNote[]>(),
+  generatedAt: timestamp("generated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const stripeWebhookEvents = pgTable("stripe_webhook_events", {
   eventId: text("event_id").primaryKey(),
   processedAt: timestamp("processed_at", { withTimezone: true })

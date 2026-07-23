@@ -8,6 +8,7 @@ import { checkoutRoutes } from "./billing/checkout.js";
 import { entitlementRoutes } from "./routes/entitlement.js";
 import { accountRoutes } from "./routes/account.js";
 import { conversationRoutes } from "./routes/conversation.js";
+import { feedbackRoutes } from "./routes/feedback.js";
 
 export function buildApp() {
   const fastify = Fastify({ logger: true });
@@ -29,6 +30,7 @@ export function buildApp() {
   fastify.register(entitlementRoutes);
   fastify.register(accountRoutes);
   fastify.register(conversationRoutes);
+  fastify.register(feedbackRoutes);
 
   return fastify;
 }

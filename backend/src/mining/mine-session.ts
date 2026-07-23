@@ -2,6 +2,7 @@ import { asc, eq } from "drizzle-orm";
 import { db, schema } from "../db/client.js";
 import type { TranscriptTurnInput } from "../conversation/reply.js";
 import { extractSessionSignals } from "./extract.js";
+import { buildFeedbackReport } from "../feedback/notes.js";
 
 async function loadTranscript(sessionId: string): Promise<TranscriptTurnInput[]> {
   const turns = await db
@@ -55,6 +56,23 @@ export async function mineSession(sessionId: string): Promise<void> {
       audienceKeywordMatches: result.audienceKeywordMatches ?? null,
       topicRelevanceScore: result.topicRelevanceScore,
     });
+
+    // Deterministic, no LLM call — a failure here must never affect the
+    // session_mining_results row already written above. See
+    // m5-coaching-feedback/design.md's Decisions.
+    try {
+      const coachingNotes = buildFeedbackReport({
+        ownershipLanguagePresent: result.ownershipLanguagePresent,
+        tradeoffReasoningPresent: result.tradeoffReasoningPresent,
+        clarity: result.clarity,
+        outcomeMentioned: result.outcomeMentioned,
+        quantifiedImpactExamples: result.quantifiedImpactExamples,
+        audienceKeywordMatches: result.audienceKeywordMatches ?? null,
+      });
+      await db.insert(schema.feedbackReports).values({ sessionId, coachingNotes });
+    } catch (error) {
+      console.error(`[mining] feedback report generation failed for session ${sessionId}`, error);
+    }
   } catch (error) {
     console.error(`[mining] mineSession failed for session ${sessionId}`, error);
   }
