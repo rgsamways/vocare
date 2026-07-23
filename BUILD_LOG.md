@@ -156,4 +156,27 @@ M4 is archived and live. Next: M5 (Coaching Feedback), the first module to actua
 
 ---
 
+## Entry 6 — M5 (Coaching Feedback) Ships, Single-Instance
+
+Same pattern as M4: a real process question raised before any proposal got written, not assumed either way. M5 only reads M4's already-produced `session_mining_results` rows and reformats them into user-facing copy — no `tier2a`/`tier2b`, no new mining signal, no entitlement/abuse logic touched — so Robin confirmed it sits with M0/M8/M9 rather than getting the two-instance `chat`/`cli` treatment M1/M2/M4/M7 require. Recorded in `CLAUDE.md` before the proposal started.
+
+Built single-instance: a new `feedback_reports` table, and a deterministic, template-based note generator (`backend/src/feedback/notes.ts`) — deliberately **not** a second LLM call. `session_mining_results`' fields are already structured booleans/enums/arrays; turning them into plain-language notes is a lookup, not a generation task, and a lookup can't drift into scored or judgmental phrasing the way a bad prompt could. `topicRelevanceScore` is excluded from the note generator's own input type, not just left out of the rendered page — a leak would need a deliberate signature change first, not a rendering mistake. A session with no anchor, or one whose `target_role` doesn't confidently match the (still-sparse) role-language library, renders a complete report with that category cleanly omitted — never a "we didn't find anything" note, which would be the same disguised-negative-signal problem the spec's trend-reporting section already named for M6, just arriving one module early.
+
+Verified against the real Anthropic API before touching production — three scenarios sharing one transcript (matched role, unmatched role reproducing M4's own documented "Senior developer" gap, no anchor at all) all produced clean, complete reports with no leaked score. Migration and Railway deploy went out with Robin's direct confirmation, then verified against a real production session Robin completed themselves (after flipping their own `entitlement_status` to `paid` directly via SQL to get past the free-session cap — confirmed safe first, since `checkEntitlement` just reads that column, same as a real purchase).
+
+**One task genuinely left open, not faked as done:** a live screen-reader (NVDA/VoiceOver) walkthrough of the new `FeedbackPage`. Verified structurally (semantic HTML, `aria-live`, accessible button naming) and via component tests, but no real assistive-technology session — flagged in `tasks.md` and archived with that one item still unchecked rather than checked off to make the archive look cleaner.
+
+**A real M3 regression, found mid-session and fixed in three attempts.** While testing M5, Robin reported voice capture duplicating words — genuinely new behavior, confirmed via `git log` to not be caused by any code change in this project (`ConversationPage.tsx`'s mic code was untouched since M3 itself), pointing at Chrome's own recognition service having shifted. Diagnosis took three real rounds because each fix was built from a *description* of the symptom rather than the actual text, and each description turned out to be incomplete or slightly wrong:
+1. First guess (desktop-shaped): Chrome finalizing one whole segment twice, adjacent. Fixed, verified via automated test — but the real report was from an Android Pixel 10, a different platform with different behavior.
+2. Second guess, after Robin corrected the trigger (fast speech, not slow) and confirmed it was Android Chrome specifically: single words repeating within one segment's own text. Fixed, deployed, confirmed live via the actual served JS bundle's content (not just "the deploy succeeded") — and still didn't fix it.
+3. Robin's own exact repro finally nailed it: `"I'm I'm going I'm going to I'm going to say I'm going to say the..."` — each SpeechRecognition entry was a *cumulative restatement* of the whole utterance so far, not a new word or a repeated segment. `mergeSpeechSegments` (`web/src/lib/`) collapses a chain of entries where each one is a strictly-longer prefix-extension of the last, down to just the final, most complete one — while leaving genuinely distinct segments alone.
+
+That third fix introduced its own regression, caught the same day: it initially merged on any `startsWith` match, which also matched an *identical* segment against itself, collapsing a genuinely repeated word ("test test test," reproduced on a laptop) down to one instance. Fixed by requiring the new segment to be strictly *longer*, not just a prefix match, before treating it as a restatement rather than a separate, real repeat.
+
+**Final live re-verification is still owed** — Robin hit M1's own velocity cap (`FAIR_USE_CAP.per24h: 6`) from the same day's repeated test sessions before confirming the last fix on a real device, so this is tracked in `FIXLIST.md` rather than closed out on faith.
+
+M5 is archived and live. Next: M6 (Progress Over Time) — session history, trend indicators (including one M4 already flagged can't be built as originally specified — no `filler_word_count` signal exists), and anchor management (CRUD/archive/revisions), which the M2-era design deliberately deferred to this module.
+
+---
+
 *Continue adding entries at real milestones — a module completed, a real decision made, a mistake caught and fixed. Not every commit; the moments worth explaining to someone looking at this afterward.*
