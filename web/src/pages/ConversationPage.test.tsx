@@ -229,6 +229,47 @@ describe("ConversationPage mic control", () => {
       expect(screen.getByPlaceholderText("Type your reply...")).toHaveValue("the project was a success"),
     );
   });
+
+  // Regression test for the real, confirmed root cause on Android Chrome
+  // (Pixel 10, 2026-07-23): Robin's own exact repro was each SpeechRecognition
+  // entry cumulatively restating the whole utterance so far — "I'm", then
+  // "I'm going", then "I'm going to", etc. — which the two fixes above never
+  // addressed, since neither assumed entries could be prefix-extensions of
+  // each other rather than distinct or exactly-repeated segments.
+  it("collapses a chain of cumulative-restatement entries instead of concatenating all of them", async () => {
+    type ResultEvent = { results: ArrayLike<ArrayLike<{ transcript: string }>> };
+    const instance = {
+      continuous: false,
+      interimResults: false,
+      onresult: null as ((event: ResultEvent) => void) | null,
+      onerror: null,
+      onend: null,
+      start() {},
+      stop() {},
+    };
+    function FakeSpeechRecognition() {
+      return instance;
+    }
+    vi.stubGlobal("SpeechRecognition", FakeSpeechRecognition);
+    stubStartAndTurnFetch();
+
+    await startSession();
+    fireEvent.click(screen.getByRole("button", { name: /speak your reply/i }));
+
+    instance.onresult!({
+      results: [
+        [{ transcript: "I'm" }],
+        [{ transcript: "I'm going" }],
+        [{ transcript: "I'm going to" }],
+        [{ transcript: "I'm going to say" }],
+        [{ transcript: "I'm going to say the..." }],
+      ],
+    });
+
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText("Type your reply...")).toHaveValue("I'm going to say the..."),
+    );
+  });
 });
 
 // Regression test for the tab-bar data-loss gap: M2.1 made every tab

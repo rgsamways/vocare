@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { collapseRepeatedWords } from "../lib/collapse-repeated-words";
+import { mergeSpeechSegments } from "../lib/merge-speech-segments";
 
 const API_URL = import.meta.env.VITE_API_URL as string;
 
@@ -256,19 +257,15 @@ export function ConversationPage() {
       recognition.continuous = true;
       recognition.interimResults = true;
       recognition.onresult = (event) => {
-        // Desktop Chrome was observed finalizing a whole segment twice as
-        // separate adjacent entries — collapsed here too, cheap and harmless
-        // even though it's not what's happening on Android (see
-        // collapseRepeatedWords above for that case).
-        let transcript = "";
-        let previousSegment: string | null = null;
+        const segments: string[] = [];
         for (let i = 0; i < event.results.length; i++) {
-          const segment = event.results[i][0].transcript;
-          if (segment === previousSegment) continue;
-          transcript += segment;
-          previousSegment = segment;
+          segments.push(event.results[i][0].transcript);
         }
-        setComposerText(collapseRepeatedWords(transcript));
+        // mergeSpeechSegments handles Android's cumulative-restatement
+        // entries (the main fix — see that module); collapseRepeatedWords
+        // stays on top as a cheap secondary pass for genuine single-word
+        // repeats, a separate quirk observed on desktop Chrome.
+        setComposerText(collapseRepeatedWords(mergeSpeechSegments(segments)));
       };
       recognition.onerror = () => {
         setMicListening(false);
