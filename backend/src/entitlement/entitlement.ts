@@ -1,6 +1,6 @@
-import { and, count, eq, gte } from "drizzle-orm";
+import { and, count, eq, gte, lt } from "drizzle-orm";
 import { db, schema } from "../db/client.js";
-import { FAIR_USE_CAP, FREE_SESSION_LIMIT } from "../config.js";
+import { FAIR_USE_CAP, FREE_SESSION_LIMIT, OFF_TOPIC_SESSION_LIMIT, OFF_TOPIC_THRESHOLD } from "../config.js";
 
 // Deliberately vague about reset timing — the cap spans two rolling windows
 // (24h and 30d), so promising "come back tomorrow" would be wrong for
@@ -38,6 +38,55 @@ async function countSessionsSince(userId: string, since: Date): Promise<number> 
   return row?.value ?? 0;
 }
 
+/**
+ * Inner-joined to `session_mining_results`, so a session with no mining
+ * result yet (mining is async, per M4's design) is never counted — see
+ * specs/session-entitlement's "no mining result yet" scenario. Excludes
+ * crisis-flagged sessions, same exemption `countSessionsSince` already
+ * applies — a session flagged during a genuine crisis shouldn't count
+ * against the person as fair-use abuse for also being off-topic.
+ */
+async function countOffTopicSessionsSince(userId: string, since: Date): Promise<number> {
+  const [row] = await db
+    .select({ value: count() })
+    .from(schema.sessions)
+    .innerJoin(
+      schema.sessionMiningResults,
+      eq(schema.sessionMiningResults.sessionId, schema.sessions.id),
+    )
+    .where(
+      and(
+        eq(schema.sessions.userId, userId),
+        eq(schema.sessions.crisisFlagged, false),
+        gte(schema.sessions.createdAt, since),
+        lt(schema.sessionMiningResults.topicRelevanceScore, OFF_TOPIC_THRESHOLD),
+      ),
+    );
+  return row?.value ?? 0;
+}
+
+export interface AbuseSignal {
+  count24h: number;
+  count30d: number;
+}
+
+/**
+ * The Section 17 fair-use signal M4's mining pass feeds — see design.md's
+ * Decisions. Read by `checkEntitlement` alongside the existing velocity cap,
+ * not exposed to any client.
+ */
+export async function getAbuseSignal(userId: string): Promise<AbuseSignal> {
+  const now = Date.now();
+  const since24h = new Date(now - 24 * 60 * 60 * 1000);
+  const since30d = new Date(now - 30 * 24 * 60 * 60 * 1000);
+
+  const [count24h, count30d] = await Promise.all([
+    countOffTopicSessionsSince(userId, since24h),
+    countOffTopicSessionsSince(userId, since30d),
+  ]);
+  return { count24h, count30d };
+}
+
 export type EntitlementCheck =
   | { allowed: true }
   | { allowed: false; reason: "paywall"; message: string }
@@ -60,11 +109,22 @@ export async function checkEntitlement(userId: string): Promise<EntitlementCheck
   const since30d = new Date(now - 30 * 24 * 60 * 60 * 1000);
 
   // Velocity cap applies regardless of paid/unpaid status — checked first.
-  const [count24h, count30d] = await Promise.all([
+  const [count24h, count30d, abuseSignal] = await Promise.all([
     countSessionsSince(userId, since24h),
     countSessionsSince(userId, since30d),
+    getAbuseSignal(userId),
   ]);
   if (count24h >= FAIR_USE_CAP.per24h || count30d >= FAIR_USE_CAP.per30d) {
+    return { allowed: false, reason: "velocity_cap", message: VELOCITY_CAP_MESSAGE };
+  }
+
+  // Section 17's off-topic abuse signal — reuses the velocity-cap reason and
+  // message so a denial here is indistinguishable from an ordinary velocity
+  // cap trip. See design.md's Decisions.
+  if (
+    abuseSignal.count24h >= OFF_TOPIC_SESSION_LIMIT ||
+    abuseSignal.count30d >= OFF_TOPIC_SESSION_LIMIT
+  ) {
     return { allowed: false, reason: "velocity_cap", message: VELOCITY_CAP_MESSAGE };
   }
 

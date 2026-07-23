@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db, schema } from "../db/client.js";
 import { deleteUserCascade } from "./delete-user-cascade.js";
 
 const USER_A = { id: "cascade-test-user-a", email: "cascade-a@example.com" };
 const USER_B = { id: "cascade-test-user-b", email: "cascade-b@example.com" };
 
-async function seedFullUser(user: { id: string; email: string }) {
+async function seedFullUser(user: { id: string; email: string }): Promise<{ completeSessionId: string }> {
   await db.insert(schema.user).values({
     id: user.id,
     name: "",
@@ -17,22 +17,35 @@ async function seedFullUser(user: { id: string; email: string }) {
     country: "Canada",
     paidAt: new Date(),
   });
-  await db.insert(schema.sessions).values([
-    {
+  const [completeSession] = await db
+    .insert(schema.sessions)
+    .values({
       userId: user.id,
       status: "complete",
       personaAgeRange: "20s-30s",
       personaGenderPresentation: "neutral",
       mode: "text",
-    },
-    {
-      userId: user.id,
-      status: "start",
-      personaAgeRange: "20s-30s",
-      personaGenderPresentation: "neutral",
-      mode: "text",
-    },
-  ]);
+    })
+    .returning();
+  await db.insert(schema.sessions).values({
+    userId: user.id,
+    status: "start",
+    personaAgeRange: "20s-30s",
+    personaGenderPresentation: "neutral",
+    mode: "text",
+  });
+  await db.insert(schema.sessionMiningResults).values({
+    sessionId: completeSession.id,
+    ownershipLanguagePresent: true,
+    tradeoffReasoningPresent: true,
+    techDomainMentions: [],
+    clarity: "clear",
+    sentiment: "neutral",
+    growthSignals: [],
+    outcomeMentioned: false,
+    quantifiedImpactExamples: [],
+    topicRelevanceScore: 80,
+  });
   await db.insert(schema.stripePayments).values({
     paymentIntentId: `pi_${user.id}`,
     userId: user.id,
@@ -55,9 +68,18 @@ async function seedFullUser(user: { id: string; email: string }) {
     value: JSON.stringify({ email: user.email, name: "" }),
     expiresAt: new Date(Date.now() + 1000 * 60 * 5),
   });
+  return { completeSessionId: completeSession.id };
 }
 
 async function cleanup(user: { id: string; email: string }) {
+  const ownedSessions = await db
+    .select({ id: schema.sessions.id })
+    .from(schema.sessions)
+    .where(eq(schema.sessions.userId, user.id));
+  const sessionIds = ownedSessions.map((s) => s.id);
+  if (sessionIds.length > 0) {
+    await db.delete(schema.sessionMiningResults).where(inArray(schema.sessionMiningResults.sessionId, sessionIds));
+  }
   await db.delete(schema.sessions).where(eq(schema.sessions.userId, user.id));
   await db.delete(schema.stripePayments).where(eq(schema.stripePayments.userId, user.id));
   await db.delete(schema.account).where(eq(schema.account.userId, user.id));
@@ -73,8 +95,8 @@ describe("deleteUserCascade", () => {
   });
 
   it("removes rows from every table for the deleted user, and leaves another user's rows untouched", async () => {
-    await seedFullUser(USER_A);
-    await seedFullUser(USER_B);
+    const { completeSessionId: sessionIdA } = await seedFullUser(USER_A);
+    const { completeSessionId: sessionIdB } = await seedFullUser(USER_B);
 
     await deleteUserCascade(USER_A.id);
 
@@ -82,6 +104,12 @@ describe("deleteUserCascade", () => {
     expect(await db.select().from(schema.user).where(eq(schema.user.id, USER_A.id))).toHaveLength(0);
     expect(
       await db.select().from(schema.sessions).where(eq(schema.sessions.userId, USER_A.id)),
+    ).toHaveLength(0);
+    expect(
+      await db
+        .select()
+        .from(schema.sessionMiningResults)
+        .where(eq(schema.sessionMiningResults.sessionId, sessionIdA)),
     ).toHaveLength(0);
     expect(
       await db
@@ -103,6 +131,12 @@ describe("deleteUserCascade", () => {
     expect(
       await db.select().from(schema.sessions).where(eq(schema.sessions.userId, USER_B.id)),
     ).toHaveLength(2);
+    expect(
+      await db
+        .select()
+        .from(schema.sessionMiningResults)
+        .where(eq(schema.sessionMiningResults.sessionId, sessionIdB)),
+    ).toHaveLength(1);
     expect(
       await db
         .select()

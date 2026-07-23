@@ -1,4 +1,4 @@
-import { eq, like } from "drizzle-orm";
+import { eq, inArray, like } from "drizzle-orm";
 import { db, schema } from "../db/client.js";
 
 /**
@@ -8,9 +8,15 @@ import { db, schema } from "../db/client.js";
  * application logic, e.g. M7's eventual recomputation-vs-disclosure policy).
  *
  * Tables covered now: the `user` row itself (Better Auth's table, carrying
- * our entitlement fields), practice `sessions`, `stripe_payments`, and
- * Better Auth's own `session`/`account`/`verification` tables — real names
- * confirmed via its Drizzle adapter (tasks.md 2.5), not guessed.
+ * our entitlement fields), practice `sessions`, `session_mining_results`,
+ * `stripe_payments`, and Better Auth's own `session`/`account`/`verification`
+ * tables — real names confirmed via its Drizzle adapter (tasks.md 2.5), not
+ * guessed.
+ *
+ * `session_mining_results` is keyed by `sessionId`, not `userId`, so it's
+ * deleted from the owning user's session ids, ordered before `sessions`
+ * itself (that FK has no `ON DELETE CASCADE` either — see this table's own
+ * schema.ts comment on why).
  *
  * `verification` rows aren't keyed by userId (Better Auth keys them by the
  * token itself, storing the email inside a JSON `value` column) — matched
@@ -18,15 +24,30 @@ import { db, schema } from "../db/client.js";
  * deletion (see account-management spec's "cannot sign in again" scenario).
  *
  * Tables named in proposal.md/spec Section 13 that don't exist yet as of
- * M1 — transcript_turns, session_mining_results, feedback_reports,
- * tier1_profiles, anchors, anchor_revisions — belong in this same function,
- * added by whichever module (M2/M4/M5/M6/M9) creates each one. This is the
- * one file to grep to check whether that happened.
+ * M1 — transcript_turns, feedback_reports, tier1_profiles, anchors,
+ * anchor_revisions — belong in this same function, added by whichever
+ * module (M2/M5/M6/M9) creates each one. This is the one file to grep to
+ * check whether that happened. NOTE (M4, 2026-07-22): transcript_turns still
+ * isn't covered here, and its FK has no ON DELETE CASCADE — deleting a user
+ * with any completed session may already fail on that pre-existing gap
+ * today, independent of this module. Flagged to Robin, not fixed here (out
+ * of scope for M4 — see tasks.md 4.3).
  */
 export async function deleteUserCascade(userId: string): Promise<void> {
   await db.transaction(async (tx) => {
     const [user] = await tx.select().from(schema.user).where(eq(schema.user.id, userId));
     if (!user) return;
+
+    const ownedSessions = await tx
+      .select({ id: schema.sessions.id })
+      .from(schema.sessions)
+      .where(eq(schema.sessions.userId, userId));
+    const sessionIds = ownedSessions.map((s) => s.id);
+    if (sessionIds.length > 0) {
+      await tx
+        .delete(schema.sessionMiningResults)
+        .where(inArray(schema.sessionMiningResults.sessionId, sessionIds));
+    }
 
     await tx.delete(schema.sessions).where(eq(schema.sessions.userId, userId));
     await tx.delete(schema.stripePayments).where(eq(schema.stripePayments.userId, userId));

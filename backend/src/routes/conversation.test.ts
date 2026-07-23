@@ -33,6 +33,14 @@ vi.mock("../conversation/anthropic-client.js", () => ({
   anthropic: { messages: { create: createMock } },
 }));
 
+// Mocked so these route tests don't depend on the real extraction call —
+// mine-session.ts/extract.ts have their own unit tests. Asserts only the
+// trigger/fire-and-forget contract from this file, per tasks.md 5.3.
+const mineSessionMock = vi.fn(async () => {});
+vi.mock("../mining/mine-session.js", () => ({
+  mineSession: mineSessionMock,
+}));
+
 const { buildApp } = await import("../app.js");
 const { db, schema } = await import("../db/client.js");
 const { REDIRECT_TURN_CONTENT } = await import("../conversation/redirect.js");
@@ -57,6 +65,8 @@ describe("conversation routes", () => {
     sessionUser = TEST_USER;
     crisisDetectedNext = false;
     createMock.mockClear();
+    mineSessionMock.mockClear();
+    mineSessionMock.mockImplementation(async () => {});
     await db.insert(schema.user).values({
       id: TEST_USER_ID,
       name: "",
@@ -125,6 +135,44 @@ describe("conversation routes", () => {
     const [afterEnd] = await db.select().from(schema.sessions).where(eq(schema.sessions.id, sessionId));
     expect(afterEnd.status).toBe("complete");
     expect(afterEnd.completedAt).not.toBeNull();
+  });
+
+  it("triggers exactly one mineSession call for the ended session, without awaiting it in the response", async () => {
+    const app = buildApp();
+    const startRes = await app.inject({ method: "POST", url: "/sessions/start", payload: {} });
+    const { sessionId } = startRes.json();
+
+    let resolveMining: (() => void) | undefined;
+    mineSessionMock.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          resolveMining = resolve;
+        }),
+    );
+
+    // If the route awaited mineSession, this would hang until resolveMining()
+    // is called below — it never is before the await, so a regression here
+    // times out this test rather than passing silently.
+    const endRes = await app.inject({ method: "POST", url: `/sessions/${sessionId}/end` });
+
+    expect(endRes.statusCode).toBe(200);
+    expect(mineSessionMock).toHaveBeenCalledTimes(1);
+    expect(mineSessionMock).toHaveBeenCalledWith(sessionId);
+    resolveMining?.();
+  });
+
+  it("does not surface a mineSession rejection as an error response or affect session completion", async () => {
+    const app = buildApp();
+    const startRes = await app.inject({ method: "POST", url: "/sessions/start", payload: {} });
+    const { sessionId } = startRes.json();
+
+    mineSessionMock.mockRejectedValueOnce(new Error("boom"));
+
+    const endRes = await app.inject({ method: "POST", url: `/sessions/${sessionId}/end` });
+    expect(endRes.statusCode).toBe(200);
+
+    const [session] = await db.select().from(schema.sessions).where(eq(schema.sessions.id, sessionId));
+    expect(session.status).toBe("complete");
   });
 
   it("steers with target_role/target_industry only — job_description_text and company never reach the model", async () => {

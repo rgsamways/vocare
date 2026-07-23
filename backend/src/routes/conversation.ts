@@ -15,6 +15,7 @@ import { checkCrisisLanguage } from "../conversation/crisis-safety.js";
 import { generateConversationalReply, type TranscriptTurnInput } from "../conversation/reply.js";
 import { REDIRECT_TURN_CONTENT } from "../conversation/redirect.js";
 import type { AnchorSteering } from "../conversation/system-prompt.js";
+import { mineSession } from "../mining/mine-session.js";
 
 interface StartSessionBody {
   anchorId?: string;
@@ -320,6 +321,12 @@ export async function conversationRoutes(fastify: FastifyInstance) {
       .update(schema.sessions)
       .set({ status: "complete", completedAt: new Date() })
       .where(eq(schema.sessions.id, session.id));
+
+    // Fire-and-forget — never awaited, never lets a mining failure affect
+    // this response. See mine-session.ts and design.md's Decisions.
+    void mineSession(session.id).catch((error) => {
+      console.error(`[mining] unhandled mineSession rejection for session ${session.id}`, error);
+    });
 
     return reply.send({ status: "complete" });
   });

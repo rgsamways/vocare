@@ -2,6 +2,8 @@ import {
   boolean,
   date,
   index,
+  integer,
+  jsonb,
   pgTable,
   text,
   timestamp,
@@ -79,6 +81,38 @@ export const transcriptTurns = pgTable(
   },
   (table) => [index("transcript_turns_session_id_ts_idx").on(table.sessionId, table.ts)],
 );
+
+/**
+ * One row per completed session, written by the async mining pass — never
+ * read back to the client (see m4-post-session-mining/specs/session-mining's
+ * "No user-facing mining surface" requirement). `sessionId` is the primary
+ * key itself rather than a separate `id`, matching this file's existing
+ * natural-key convention (`stripePayments`/`stripeWebhookEvents`) and
+ * enforcing the one-row-per-session constraint directly.
+ *
+ * `clarity`/`sentiment` enum values are a placeholder taxonomy pending real
+ * usage data, same posture as config.ts's other placeholders. No
+ * `filler_word_count` column — see design.md's Decisions on why that signal
+ * is skipped entirely rather than stored as a non-value.
+ */
+export const sessionMiningResults = pgTable("session_mining_results", {
+  sessionId: uuid("session_id")
+    .primaryKey()
+    .references(() => sessions.id),
+  ownershipLanguagePresent: boolean("ownership_language_present").notNull(),
+  tradeoffReasoningPresent: boolean("tradeoff_reasoning_present").notNull(),
+  techDomainMentions: jsonb("tech_domain_mentions").notNull().$type<string[]>(),
+  clarity: text("clarity", { enum: ["clear", "mixed", "unclear"] }).notNull(),
+  sentiment: text("sentiment", { enum: ["positive", "neutral", "negative"] }).notNull(),
+  growthSignals: jsonb("growth_signals").notNull().$type<string[]>(),
+  outcomeMentioned: boolean("outcome_mentioned").notNull(),
+  quantifiedImpactExamples: jsonb("quantified_impact_examples").notNull().$type<string[]>(),
+  // Omitted entirely (not defaulted to []) when the session has no linked
+  // anchor with target_role set — see design.md's Decisions.
+  audienceKeywordMatches: jsonb("audience_keyword_matches").$type<string[]>(),
+  topicRelevanceScore: integer("topic_relevance_score").notNull(),
+  minedAt: timestamp("mined_at", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const stripeWebhookEvents = pgTable("stripe_webhook_events", {
   eventId: text("event_id").primaryKey(),

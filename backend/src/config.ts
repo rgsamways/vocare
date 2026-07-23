@@ -27,6 +27,27 @@ export const CONVERSATION_MODEL = "claude-haiku-4-5";
  * this is a separate, dedicated call rather than folded into that reply. */
 export const CRISIS_CHECK_MODEL = "claude-haiku-4-5";
 
+// --- M4 post-session mining ---
+// Model choice and both thresholds below are placeholders pending real beta
+// usage data — see m4-post-session-mining/design.md's Open Questions.
+
+/** Same model as CONVERSATION_MODEL/CRISIS_CHECK_MODEL. */
+export const MINING_MODEL = "claude-haiku-4-5";
+
+/**
+ * A session's `topic_relevance_score` (0-100) below this counts as
+ * "off-topic" for the fair-use abuse signal — see design.md's Decisions on
+ * `getAbuseSignal`. Sized loosely; not tuned against beta data.
+ */
+export const OFF_TOPIC_THRESHOLD = 30;
+
+/**
+ * Number of below-threshold sessions within the existing rolling 24h/30d
+ * windows (FAIR_USE_CAP's windows) before `checkEntitlement` denies the next
+ * session start via the existing, undisclosed VELOCITY_CAP_MESSAGE.
+ */
+export const OFF_TOPIC_SESSION_LIMIT = 3;
+
 export interface PersonaCombination {
   ageRange: string;
   genderPresentation: string;
