@@ -138,4 +138,22 @@ M1 and M2 are both live in production as of this entry — Stripe still in test 
 
 ---
 
+## Entry 5 — M4 (Post-Session Mining Pipeline) Ships
+
+Before any build work started, a real process question got asked rather than silently decided either way: M4 isn't named in rule 5's sensitive-module list, but the spec's own NFR requires re-identification review for anything touching mining, since M4 produces the raw signal M7 will eventually anonymize and feeds M1's abuse-detection logic. Robin confirmed it upfront — M4 gets the same two-instance `chat`/`cli` treatment as M1/M2/M7, recorded in `CLAUDE.md` before `chat` wrote a line of the proposal.
+
+Built: an async Haiku 4.5 call triggered fire-and-forget off `/sessions/:id/end`, extracting ownership language, tradeoff reasoning, tech/domain mentions, clarity, sentiment, growth signals, and verbatim-quoted outcome/impact examples into a new `session_mining_results` table — never surfaced to any client. `topic_relevance_score` is actually wired into `checkEntitlement` (a new `getAbuseSignal` check, reusing the existing undisclosed velocity-cap message so a denial here is indistinguishable from an ordinary fair-use trip), closing the loop on a Section 17 proposal that had sat as prose since the original spec pass. `filler_word_count` was deliberately *not* built — M3's own manual finding that the Web Speech API strips disfluencies before they reach `transcript_turns` means the raw signal doesn't exist, so the field was dropped from the schema entirely rather than stored as a fake or null value, with the gap flagged to M6.
+
+**`chat`'s independent grading matched `cli`'s implementation to the proposal with no issues found** — re-read every diff against `main` and reran lint/typecheck/test/build independently rather than trusting the summary (68 backend + 5 web tests, all clean). `cli`'s own real-API verification (not mocked) caught a genuine bug along the way: Anthropic's structured-output `json_schema` format rejects `minimum`/`maximum` on an integer property (a live 400 from the real API), fixed by dropping those schema keywords and relying on prompt instructions for the 0–100 range instead.
+
+**The real cost check needed a trick to get a clean number.** The Anthropic Console's aggregate cost view lumps this Claude Code session's own Sonnet 5 usage, an unrelated web-search research effort, and all of M2/M3/M4's real-API dev/testing traffic together with actual production sessions — dividing the raw daily total by session count would have wildly overstated per-session cost. Filtering the Console to Vocare's own dedicated API key isolated a real, if still slightly inflated, number: $0.24 for the entire day across all of that combined traffic — cross-checked against an independent token-based calculation from M4's measured 438-token static prompt, both landing around $0.025–0.035/session, comfortably under the spec's $0.05 ceiling.
+
+Production verification was real, not assumed: 3 actual completed sessions on `vocare.ca` (run by Robin directly, since neither Claude instance can sign into production — magic-link auth requires a real inbox) each produced a full mining row with genuine extracted signal, including verbatim quoted phrases like "750 users by xmas" and "30,000 in revenue." The audience-keyword-matching path correctly omitted output for a `target_role` of "Senior developer" that didn't match the placeholder role-language library's categories — the documented fail-safe working as designed, not a bug, though it did surface that "developer" is a real gap in the starter taxonomy worth expanding later.
+
+**A real bug found along the way, fixed on the spot and unrelated to M4 itself:** while completing a real production session for verification, an iOS Safari zoom-on-focus bug surfaced — the conversation composer's `14px` input font-size was under Safari's 16px auto-zoom threshold, shoving the whole page off-screen when tabbing into the text field on iPhone. One-line fix (`14px` → `16px`), verified clean, committed separately from M4's own changes.
+
+M4 is archived and live. Next: M5 (Coaching Feedback), the first module to actually surface any of this mining data to a real user.
+
+---
+
 *Continue adding entries at real milestones — a module completed, a real decision made, a mistake caught and fixed. Not every commit; the moments worth explaining to someone looking at this afterward.*
